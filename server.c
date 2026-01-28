@@ -1,31 +1,68 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <strings.h>
+#include <string.h>
+
+/* --- NETWORK SHIT ---*/
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <poll.h>
+/* --------------------*/
 
-int main()
+#define MAX_USERS 256
+#define WELCOME_001 "001 <nick> :Welcome to the IRC Network <nick>\r\n\0"
+#define WELCOME_002 "002 <nick> :Your host is server.name, running version 1.0\r\n\0"
+#define WELCOME_003 "003 <nick> :This server was created today\r\n\0"
+#define WELCOME_004 "004 <nick> server.name 1.0 o o\r\n\0"
+#define JOIN_461 ":localhost 461 <nick> JOIN :Not enough parameters\r\n\0"
+
+typedef enum Role
 {
-  unsigned char buffer[100];
+  OPERATOR,
+  REGULAR
+} role_e;
 
+typedef struct clientstate_s // Change this shit to class list 
+{
+  int           fd;
+  role_e        role;
+
+  unsigned char nick[9];
+  unsigned char user[9];
+  unsigned char real_name[9];
+} clientstate_t;
+
+
+clientstate_t clientState[MAX_USERS];
+
+void  init_clients(void)
+{
+  for (int i = 0; i < MAX_USERS; i++)
+  {
+    clientState[i].fd = -1;
+    clientState[i].role = REGULAR;
+    bzero(clientState->nick, sizeof(clientState->nick));
+    bzero(clientState->user, sizeof(clientState->user));
+    bzero(clientState->real_name, sizeof(clientState->real_name));
+  }
+}
+
+int  init_server(void)
+{ 
+  int opt = 1;
   struct sockaddr_in  serverInfo = {0};
   serverInfo.sin_family = AF_INET;
   serverInfo.sin_addr.s_addr = 0;
   serverInfo.sin_port = htons(5555);
 
-
-  struct sockaddr_in  clientInfo = {0};
-  int clientSize = 0;
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   if (fd == -1)
   {
     perror("socket");
     return -1;
   }
-  int opt = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
   {
     perror("setsockopt");
@@ -44,19 +81,55 @@ int main()
     close(fd);
     return -1;
   }
-  while (1)
+  return fd;
+}
+
+void  close_clients(void)
+{
+  for (int i = 0; clientState[i].fd != -1; i++)
+    close(clientState[i].fd);
+}
+
+int main()
+{
+  int fd;                               // Main connection socket file descriptor
+  int cfd;                              // Temp client socket file descriptor
+  int i = 0;                            // Index for client structure
+  unsigned char buffer[512];            // Buffer for client messages
+  bzero(buffer, sizeof(buffer)); 
+                              
+  struct sockaddr_in  clientInfo = {0}; // Don't touch it
+  socklen_t clientSize = 0;
+  
+  fd = init_server();
+  if (fd == -1)
+    return -1;
+  init_clients();
+ 
+  while (1) // Main loop
   {
-    int cfd = accept(fd, (struct sockaddr *)&clientInfo, &clientSize);
+    cfd = accept(fd, (struct sockaddr *)&clientInfo, &clientSize);
     if (cfd == -1)
     {
       perror("accept");
       close(fd);
       return -1;
     }
-    bzero(buffer, sizeof(buffer));
+
     read(cfd, buffer, sizeof(buffer));
-    write(1, buffer, sizeof(buffer));
-    close(cfd);
+    // Will add first message check later
+    write(cfd, "CAP * LS :\r\n\0", 13);
+    read(cfd, buffer, sizeof(buffer));
+    read(cfd, buffer, sizeof(buffer));
+    read(cfd, buffer, sizeof(buffer));
+    // Will add user registration check later
+    write(cfd, WELCOME_001, strlen(WELCOME_001));
+    write(cfd, WELCOME_002, strlen(WELCOME_002));
+    write(cfd, WELCOME_003, strlen(WELCOME_003));
+    write(cfd, WELCOME_004, strlen(WELCOME_004));
+    clientState[i].fd = cfd;
   }
+  close_clients();
   close(fd);
+  return 0;
 }
