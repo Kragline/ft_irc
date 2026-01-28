@@ -88,12 +88,15 @@ void	handle_user(char *buf, ClientState &client)
 	client.setRealName(temp);
 }
 
-void	handle_cap(int cfd, char *buffer, ClientState &client)
+void	handle_registration(int cfd, char *buffer, ClientState &client)
 {
 	recv_line(cfd, buffer);
 	if (strncmp(buffer, "CAP LS", 6) == 0)
-		write(cfd, "CAP * LS :\r\n", 13);
+		send(cfd, "CAP * LS :\r\n", 13, 0);
 
+  while (strcmp("JOIN :\r\n", buffer) != 0)
+		recv_line(cfd, buffer);
+  send(cfd, JOIN_451, strlen(JOIN_451), 0);
 	while (strcmp("CAP END\r\n", buffer) != 0)
 		recv_line(cfd, buffer);
 
@@ -105,10 +108,13 @@ void	handle_cap(int cfd, char *buffer, ClientState &client)
 	if (strncmp("USER", buffer, 4) == 0)
 		handle_user(buffer + 5, client);
 
-	write(cfd, WELCOME_001, strlen(WELCOME_001));
-	write(cfd, WELCOME_002, strlen(WELCOME_002));
-	write(cfd, WELCOME_003, strlen(WELCOME_003));
-	write(cfd, WELCOME_004, strlen(WELCOME_004));
+	send(cfd, WELCOME_001, strlen(WELCOME_001), 0);
+	send(cfd, WELCOME_002, strlen(WELCOME_002), 0);
+	send(cfd, WELCOME_003, strlen(WELCOME_003), 0);
+	send(cfd, WELCOME_004, strlen(WELCOME_004), 0);
+ 
+  recv(cfd, buffer, 512, 0);
+  recv(cfd, buffer, 512, 0);
 }
 
 int	main()
@@ -139,8 +145,7 @@ int	main()
 		ClientState	newClient(cfd);
 		clients.push_back(newClient);
 
-		handle_cap(cfd, buffer, clients.back());
-		read(cfd, buffer, sizeof(buffer));
+		handle_cap(cfd, buffer, clients.back()); 
 	}
 	close(fd);
 	return 0;

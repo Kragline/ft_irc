@@ -7,4 +7,5 @@
 #define WELCOME_002 "002 <nick> :Your host is server.name, running version 1.0\r\n\0"
 #define WELCOME_003 "003 <nick> :This server was created today\r\n\0"
 #define WELCOME_004 "004 <nick> server.name 1.0 o o\r\n\0"
+#define JOIN_451 ":localhost 451 JOIN :You have not registered\r\n\0"
 #define JOIN_461 ":localhost 461 <nick> JOIN :Not enough parameters\r\n\0"
