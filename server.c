@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
 /* --- NETWORK SHIT ---*/
 #include <sys/types.h>
@@ -29,9 +30,9 @@ typedef struct clientstate_s // Change this shit to class list
   int           fd;
   role_e        role;
 
-  unsigned char nick[9];
-  unsigned char user[9];
-  unsigned char real_name[9];
+  char *nick;
+  char *user;
+  char *real_name;
 } clientstate_t;
 
 
@@ -43,9 +44,9 @@ void  init_clients(void)
   {
     clientState[i].fd = -1;
     clientState[i].role = REGULAR;
-    bzero(clientState->nick, sizeof(clientState->nick));
-    bzero(clientState->user, sizeof(clientState->user));
-    bzero(clientState->real_name, sizeof(clientState->real_name));
+    clientState[i].nick = NULL;
+    clientState[i].user = NULL;
+    clientState[i].real_name = NULL;
   }
 }
 
@@ -84,10 +85,84 @@ int  init_server(void)
   return fd;
 }
 
-void  close_clients(void)
+ssize_t recv_line(int fd, char *buf)
 {
-  for (int i = 0; clientState[i].fd != -1; i++)
-    close(clientState[i].fd);
+  size_t i = 0;
+  char c;
+  ssize_t n;
+
+  while (i < 512)
+  {
+    n = read(fd, &c, 1);
+    if (n <= 0)
+      return n; 
+    buf[i] = c;
+    if (c == '\n' && buf[i - 1] == '\r')
+    {
+      buf[i + 1] = '\0';
+      return i;
+    }
+    i++;
+  }
+  buf[i] = '\0';
+  return i;
+}
+
+void  handle_nick(char *buf, int index)
+{
+  char temp[9];
+  int i;
+
+  for (i = 0; buf[i] != '\r'; i++)
+    temp[i] = buf[i];
+  temp[i] = '\0';
+  clientState[index].nick = strdup(temp);
+  printf("nick: %s\n", clientState[index].nick);
+}
+
+void  handle_user(char *buf, int index)
+{
+  char temp[9];
+  int i;
+
+  for (i = 0; buf[i] != ' '; i++)
+    temp[i] = buf[i];
+  temp[i] = '\0';
+  clientState[index].user = strdup(temp);
+  
+ for (i = 0; buf[i] != ' '; i++)
+    temp[i] = buf[i];
+  temp[i] = '\0';
+  clientState[index].real_name = strdup(temp);
+
+  printf("user: %s\n", clientState[index].user);
+  printf("real_name: %s\n", clientState[index].real_name);
+}
+
+void  handle_cap(int cfd, char *buffer, int i)
+{
+  recv_line(cfd, buffer);
+  if (strncmp(buffer, "CAP LS", 6) == 0)
+    write(cfd, "CAP * LS :\r\n", 13);
+
+  while (strcmp("CAP END\r\n", buffer) != 0)
+    recv_line(cfd, buffer);
+
+  recv_line(cfd, buffer);
+  if (strncmp("NICK", buffer, 4) == 0)
+    handle_nick(buffer + 5, i);
+
+  recv_line(cfd, buffer);
+  if (strncmp("USER", buffer, 4) == 0)
+    handle_user(buffer + 5, i);
+
+  free(clientState[i].nick);      // Remove Later
+  free(clientState[i].user);      // Remove Later
+  free(clientState[i].real_name); // Remove Later
+  write(cfd, WELCOME_001, strlen(WELCOME_001));
+  write(cfd, WELCOME_002, strlen(WELCOME_002));
+  write(cfd, WELCOME_003, strlen(WELCOME_003));
+  write(cfd, WELCOME_004, strlen(WELCOME_004));
 }
 
 int main()
@@ -95,7 +170,7 @@ int main()
   int fd;                               // Main connection socket file descriptor
   int cfd;                              // Temp client socket file descriptor
   int i = 0;                            // Index for client structure
-  unsigned char buffer[512];            // Buffer for client messages
+  char buffer[512];                     // Buffer for client messages
   bzero(buffer, sizeof(buffer)); 
                               
   struct sockaddr_in  clientInfo = {0}; // Don't touch it
@@ -104,6 +179,7 @@ int main()
   fd = init_server();
   if (fd == -1)
     return -1;
+
   init_clients();
  
   while (1) // Main loop
@@ -116,20 +192,10 @@ int main()
       return -1;
     }
 
-    read(cfd, buffer, sizeof(buffer));
-    // Will add first message check later
-    write(cfd, "CAP * LS :\r\n\0", 13);
-    read(cfd, buffer, sizeof(buffer));
-    read(cfd, buffer, sizeof(buffer));
-    read(cfd, buffer, sizeof(buffer));
-    // Will add user registration check later
-    write(cfd, WELCOME_001, strlen(WELCOME_001));
-    write(cfd, WELCOME_002, strlen(WELCOME_002));
-    write(cfd, WELCOME_003, strlen(WELCOME_003));
-    write(cfd, WELCOME_004, strlen(WELCOME_004));
+    handle_cap(cfd, buffer, i);
     clientState[i].fd = cfd;
+    read(cfd, buffer, sizeof(buffer));
   }
-  close_clients();
   close(fd);
   return 0;
 }
