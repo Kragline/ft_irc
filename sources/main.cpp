@@ -63,44 +63,39 @@ ssize_t	recv_line(int fd, char *buf)
 
 void	add_nick(const char *buf, ClientState &client)
 {
-	char	temp[9];
-	int		i;
-  int   j = 0;
+    std::string	temp;
+	int		i = 5;
 
-	for (i = 5; buf[i] != '\r' && i < 8; i++, j++)
-		temp[j] = buf[i];
-	temp[j] = '\0';
+	for (; buf[i] != '\0'; i++)
+		temp.append(1, buf[i]);
 	client.setNick(temp);
 }
 
 void	add_user(const char *buf, ClientState &client)
 {
-	char	temp[9];
+    std::string	temp;
 	int		i = 5;
-  int   j = 0;
 
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-	temp[j] = '\0';
+    for (; buf[i] != ' '; i++)
+		temp.append(1, buf[i]);
 	client.setUser(temp);
 
-  j = 0;
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-  temp[j] = '\0';
-  client.setHostname(temp);
+    i++;
+    temp.clear();
+    for (; buf[i] != ' '; i++)
+		temp.append(1, buf[i]);
+    client.setHostname(temp);
 
-  j = 0;
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-  temp[j] = '\0';
-  i++;
-	client.setServername(temp);
+    i++;
+    temp.clear();
+    for (; buf[i] != ' '; i++)
+		temp.append(1, buf[i]);
+    client.setServername(temp);
 
-  j = 0;
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-	temp[j] = '\0';
+    i += 2;
+    temp.clear();
+    for (; buf[i] != '\0'; i++)
+		temp.append(1, buf[i]);
 	client.setRealName(temp);
 }
 
@@ -120,6 +115,11 @@ void	welcome(int fd)
 	send(fd, WELCOME_002, strlen(WELCOME_002), 0);
 	send(fd, WELCOME_003, strlen(WELCOME_003), 0);
 	send(fd, WELCOME_004, strlen(WELCOME_004), 0);
+}
+
+void    pong(int fd)
+{
+    send(fd, "PONG localhost\r\n", 16, 0);
 }
 
 void	handle_registration(int cfd, char *buffer)
@@ -145,13 +145,10 @@ void	handle_registration(int cfd, char *buffer)
       else if (tokens[i].find("USER") != std::string::npos)
       {
         add_user(tokens[i].c_str(), newClient);
-        std::cout << "Nick: " << newClient.getNick() << std::endl;
-        std::cout << "User: " << newClient.getUser() << std::endl;
-        std::cout << "Hostname: " << newClient.getHostname() << std::endl;
-        std::cout << "Servername: " << newClient.getServername() << std::endl;
-        std::cout << "Real Name: " << newClient.getRealName() << std::endl;
-	      clients.push_back(newClient);
+        clients.push_back(newClient);
       }
+      else if (tokens[i].find("PING") != std::string::npos)
+          pong(cfd);
     }
   }
 }
@@ -176,11 +173,12 @@ int	main()
 		cfd = accept(fd, (struct sockaddr *)&clientInfo, &clientSize);
 		if (cfd == -1)
 		{
-			perror("accept");
+            std::cerr << "accept" << std::endl;
 			close(fd);
 			return -1;
 		}
 		handle_registration(cfd, buffer); 
+        recv(cfd, buffer, 512, 0);
 	}
 	close(fd);
 	return 0;
