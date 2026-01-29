@@ -61,44 +61,60 @@ ssize_t	recv_line(int fd, char *buf)
 	return i;
 }
 
-void	handle_nick(char *buf, ClientState &client)
+void	add_nick(const char *buf, ClientState &client)
 {
 	char	temp[9];
 	int		i;
+  int   j = 0;
 
-	for (i = 0; buf[i] != '\r' && i < 8; i++)
-		temp[i] = buf[i];
-	temp[i] = '\0';
+	for (i = 5; buf[i] != '\r' && i < 8; i++, j++)
+		temp[j] = buf[i];
+	temp[j] = '\0';
 	client.setNick(temp);
 }
 
-void	handle_user(char *buf, ClientState &client)
+void	add_user(const char *buf, ClientState &client)
 {
 	char	temp[9];
-	int		i;
+	int		i = 5;
+  int   j = 0;
 
-	for (i = 0; buf[i] != ' '; i++)
-		temp[i] = buf[i];
-	temp[i] = '\0';
+  for (; buf[i] != ' '; i++, j++)
+		temp[j] = buf[i];
+	temp[j] = '\0';
 	client.setUser(temp);
 
-	for (i = 0; buf[i] != ' '; i++)
-    	temp[i] = buf[i];
-	temp[i] = '\0';
+  j = 0;
+  for (; buf[i] != ' '; i++, j++)
+		temp[j] = buf[i];
+  temp[j] = '\0';
+  client.setHostname(temp);
+
+  j = 0;
+  for (; buf[i] != ' '; i++, j++)
+		temp[j] = buf[i];
+  temp[j] = '\0';
+  i++;
+	client.setServername(temp);
+
+  j = 0;
+  for (; buf[i] != ' '; i++, j++)
+		temp[j] = buf[i];
+	temp[j] = '\0';
 	client.setRealName(temp);
 }
 
-void	handle_cap(int fd)
+void	cap_ls(int fd)
 {
-	send(fd, "CAP * LS :\r\n", 13, 0);
+	send(fd, CAP_LS, std::strlen(CAP_LS), 0);
 }
 
-void	handle_join(int fd)
+void	empty_join(int fd)
 {
-	send(fd, JOIN_451, strlen(JOIN_451), 0);
+	send(fd, JOIN_461, strlen(JOIN_461), 0);
 }
 
-void	handle_welcome(int fd)
+void	welcome(int fd)
 {
 	send(fd, WELCOME_001, strlen(WELCOME_001), 0);
 	send(fd, WELCOME_002, strlen(WELCOME_002), 0);
@@ -106,11 +122,38 @@ void	handle_welcome(int fd)
 	send(fd, WELCOME_004, strlen(WELCOME_004), 0);
 }
 
-void	handle_registration(int cfd, char *buffer, ClientState &client)
+void	handle_registration(int cfd, char *buffer)
 {
-	recv(cfd, buffer, 512, 0);
-	(void)client;
-	ParseRequest parser(buffer);
+  std::vector<std::string>  tokens;
+  ClientState	newClient(cfd);
+
+  while (recv(cfd, buffer, 512, 0) > 0)
+  {
+    std::string request(buffer);
+	  ParseRequest parser(request);
+    tokens = parser.getTokens();
+    for (size_t i = 0; i < tokens.size(); i++)
+    {
+      if (tokens[i].find("CAP LS") != std::string::npos)
+        cap_ls(cfd);
+      else if (tokens[i].find("JOIN :") != std::string::npos)
+        empty_join(cfd);
+      else if (tokens[i].find("CAP END") != std::string::npos)
+        welcome(cfd);
+      else if (tokens[i].find("NICK") != std::string::npos)
+        add_nick(tokens[i].c_str(), newClient);
+      else if (tokens[i].find("USER") != std::string::npos)
+      {
+        add_user(tokens[i].c_str(), newClient);
+        std::cout << "Nick: " << newClient.getNick() << std::endl;
+        std::cout << "User: " << newClient.getUser() << std::endl;
+        std::cout << "Hostname: " << newClient.getHostname() << std::endl;
+        std::cout << "Servername: " << newClient.getServername() << std::endl;
+        std::cout << "Real Name: " << newClient.getRealName() << std::endl;
+	      clients.push_back(newClient);
+      }
+    }
+  }
 }
 
 int	main()
@@ -137,11 +180,7 @@ int	main()
 			close(fd);
 			return -1;
 		}
-
-		ClientState	newClient(cfd);
-		clients.push_back(newClient);
-
-		handle_registration(cfd, buffer, clients.back()); 
+		handle_registration(cfd, buffer); 
 	}
 	close(fd);
 	return 0;

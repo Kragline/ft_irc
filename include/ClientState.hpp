@@ -29,6 +29,8 @@ class ClientState
 
 	std::string _nick;
 	std::string _user;
+	std::string _hostname;
+	std::string _servername;
 	std::string _realName;
 public:
 	ClientState();
@@ -50,6 +52,12 @@ public:
 
 	const std::string	&getUser() const;
 	void				setUser(const std::string &newUser);
+
+  const std::string	&getHostname() const;
+	void				setHostname(const std::string &newHostname);
+
+  const std::string	&getServername() const;
+	void				setServername(const std::string &newServername);
 
 	const std::string	&getRealName() const;
 	void				setRealName(const std::string &newRealName);
