@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ClientState.hpp"
+#include "ParseRequest.hpp"
 
-#define MAX_USERS 256
 #define WELCOME_001 "001 <nick> :Welcome to the IRC Network <nick>\r\n\0"
 #define WELCOME_002 "002 <nick> :Your host is server.name, running version 1.0\r\n\0"
 #define WELCOME_003 "003 <nick> :This server was created today\r\n\0"

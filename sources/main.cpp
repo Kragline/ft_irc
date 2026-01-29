@@ -88,33 +88,29 @@ void	handle_user(char *buf, ClientState &client)
 	client.setRealName(temp);
 }
 
+void	handle_cap(int fd)
+{
+	send(fd, "CAP * LS :\r\n", 13, 0);
+}
+
+void	handle_join(int fd)
+{
+	send(fd, JOIN_451, strlen(JOIN_451), 0);
+}
+
+void	handle_welcome(int fd)
+{
+	send(fd, WELCOME_001, strlen(WELCOME_001), 0);
+	send(fd, WELCOME_002, strlen(WELCOME_002), 0);
+	send(fd, WELCOME_003, strlen(WELCOME_003), 0);
+	send(fd, WELCOME_004, strlen(WELCOME_004), 0);
+}
+
 void	handle_registration(int cfd, char *buffer, ClientState &client)
 {
-	recv_line(cfd, buffer);
-	if (strncmp(buffer, "CAP LS", 6) == 0)
-		send(cfd, "CAP * LS :\r\n", 13, 0);
-
-  while (strcmp("JOIN :\r\n", buffer) != 0)
-		recv_line(cfd, buffer);
-  send(cfd, JOIN_451, strlen(JOIN_451), 0);
-	while (strcmp("CAP END\r\n", buffer) != 0)
-		recv_line(cfd, buffer);
-
-	recv_line(cfd, buffer);
-	if (strncmp("NICK", buffer, 4) == 0)
-		handle_nick(buffer + 5, client);
-
-	recv_line(cfd, buffer);
-	if (strncmp("USER", buffer, 4) == 0)
-		handle_user(buffer + 5, client);
-
-	send(cfd, WELCOME_001, strlen(WELCOME_001), 0);
-	send(cfd, WELCOME_002, strlen(WELCOME_002), 0);
-	send(cfd, WELCOME_003, strlen(WELCOME_003), 0);
-	send(cfd, WELCOME_004, strlen(WELCOME_004), 0);
- 
-  recv(cfd, buffer, 512, 0);
-  recv(cfd, buffer, 512, 0);
+	recv(cfd, buffer, 512, 0);
+	(void)client;
+	ParseRequest parser(buffer);
 }
 
 int	main()
