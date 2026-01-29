@@ -145,7 +145,7 @@ int	main()
 		ClientState	newClient(cfd);
 		clients.push_back(newClient);
 
-		handle_cap(cfd, buffer, clients.back()); 
+		handle_registration(cfd, buffer, clients.back()); 
 	}
 	close(fd);
 	return 0;
