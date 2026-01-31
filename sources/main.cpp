@@ -63,44 +63,39 @@ ssize_t	recv_line(int fd, char *buf)
 
 void	add_nick(const char *buf, ClientState &client)
 {
-	char	temp[9];
+    std::string temp;
 	int		i;
-  int   j = 0;
 
-	for (i = 5; buf[i] != '\r' && i < 8; i++, j++)
-		temp[j] = buf[i];
-	temp[j] = '\0';
+	for (i = 5; buf[i] != '\r' && i < 8; i++)
+		temp.append(1, buf[i]);
 	client.setNick(temp);
 }
 
 void	add_user(const char *buf, ClientState &client)
 {
-	char	temp[9];
+    std::string temp;
 	int		i = 5;
-  int   j = 0;
 
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-	temp[j] = '\0';
-	client.setUser(temp);
+  for (; buf[i] != ' '; i++)
+      temp.append(1, buf[i]);
+  client.setUser(temp);
+  temp.clear();
 
-  j = 0;
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-  temp[j] = '\0';
-  client.setHostname(temp);
-
-  j = 0;
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-  temp[j] = '\0';
   i++;
-	client.setServername(temp);
+  for (; buf[i] != ' '; i++)
+      temp.append(1, buf[i]);
+  client.setHostname(temp);
+  temp.clear();
 
-  j = 0;
-  for (; buf[i] != ' '; i++, j++)
-		temp[j] = buf[i];
-	temp[j] = '\0';
+  i++;
+  for (; buf[i] != ' '; i++)
+      temp.append(1, buf[i]);
+  client.setServername(temp);
+  temp.clear();
+
+  i += 2;
+  for (; buf[i] != '\0'; i++)
+		temp.append(1, buf[i]);
 	client.setRealName(temp);
 }
 
@@ -144,13 +139,13 @@ void	handle_registration(int cfd, char *buffer)
         add_nick(tokens[i].c_str(), newClient);
       else if (tokens[i].find("USER") != std::string::npos)
       {
-        add_user(tokens[i].c_str(), newClient);
-        std::cout << "Nick: " << newClient.getNick() << std::endl;
-        std::cout << "User: " << newClient.getUser() << std::endl;
-        std::cout << "Hostname: " << newClient.getHostname() << std::endl;
-        std::cout << "Servername: " << newClient.getServername() << std::endl;
-        std::cout << "Real Name: " << newClient.getRealName() << std::endl;
-	      clients.push_back(newClient);
+        add_user(tokens[i].c_str(), newClient); 
+	    clients.push_back(newClient);
+        std::cout << "Nick: " << clients[0].getNick() << std::endl;
+        std::cout << "User: " << clients[0].getUser() << std::endl;
+        std::cout << "Hostname: " << clients[0].getHostname() << std::endl;
+        std::cout << "Servername: " << clients[0].getServername() << std::endl;
+        std::cout << "Real Name: " << clients[0].getRealName() << std::endl;
       }
     }
   }
