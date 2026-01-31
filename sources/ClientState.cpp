@@ -4,7 +4,7 @@ ClientState::ClientState() : _fd(-1), _role(REGULAR) {}
 
 ClientState::ClientState(int fd, role_e role) : _fd(fd), _role(role) {}
 
-ClientState::ClientState(const ClientState &other) : _fd(other._fd), _role(other._role), _nick(other._nick), _user(other._user), _hostname(other._hostname), _servername(other._hostname), _realName(other._realName) {}
+ClientState::ClientState(const ClientState &other) : _fd(other._fd), _role(other._role), _nick(other._nick), _user(other._user), _hostname(other._hostname), _servername(other._servername), _realName(other._realName) {}
 
 ClientState	&ClientState::operator=(const ClientState &other)
 {
