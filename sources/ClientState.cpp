@@ -14,8 +14,9 @@ ClientState	&ClientState::operator=(const ClientState &other)
 	_fd = other._fd;
 	_role = other._role;
 	_nick = other._nick;
-  _hostname = other._hostname;
-  _servername = other._servername;
+    _user = other._user;
+    _hostname = other._hostname;
+    _servername = other._servername;
 	_realName = other._realName;
 
 	return (*this);

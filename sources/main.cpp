@@ -63,37 +63,37 @@ ssize_t	recv_line(int fd, char *buf)
 
 void	add_nick(const char *buf, ClientState &client)
 {
-    std::string	temp;
-	int		i = 5;
+    std::string temp;
+	int		i;
 
-	for (; buf[i] != '\0'; i++)
+	for (i = 5; buf[i] != '\r' && i < 8; i++)
 		temp.append(1, buf[i]);
 	client.setNick(temp);
 }
 
 void	add_user(const char *buf, ClientState &client)
 {
-    std::string	temp;
+    std::string temp;
 	int		i = 5;
-
+    
     for (; buf[i] != ' '; i++)
-		temp.append(1, buf[i]);
-	client.setUser(temp);
+        temp.append(1, buf[i]);
+    client.setUser(temp);
+    temp.clear();
 
     i++;
-    temp.clear();
     for (; buf[i] != ' '; i++)
-		temp.append(1, buf[i]);
+        temp.append(1, buf[i]);
     client.setHostname(temp);
+    temp.clear();
 
     i++;
-    temp.clear();
     for (; buf[i] != ' '; i++)
-		temp.append(1, buf[i]);
+        temp.append(1, buf[i]);
     client.setServername(temp);
+    temp.clear();
 
     i += 2;
-    temp.clear();
     for (; buf[i] != '\0'; i++)
 		temp.append(1, buf[i]);
 	client.setRealName(temp);
@@ -144,8 +144,13 @@ void	handle_registration(int cfd, char *buffer)
         add_nick(tokens[i].c_str(), newClient);
       else if (tokens[i].find("USER") != std::string::npos)
       {
-        add_user(tokens[i].c_str(), newClient);
-        clients.push_back(newClient);
+        add_user(tokens[i].c_str(), newClient); 
+	    clients.push_back(newClient);
+        std::cout << "Nick: " << clients[0].getNick() << std::endl;
+        std::cout << "User: " << clients[0].getUser() << std::endl;
+        std::cout << "Hostname: " << clients[0].getHostname() << std::endl;
+        std::cout << "Servername: " << clients[0].getServername() << std::endl;
+        std::cout << "Real Name: " << clients[0].getRealName() << std::endl;
       }
       else if (tokens[i].find("PING") != std::string::npos)
           pong(cfd);
