@@ -2,7 +2,19 @@
 
 ParseRequest::ParseRequest() {}
 
-ParseRequest::ParseRequest(const std::string &line)
+ParseRequest::ParseRequest(const std::string &line) { parseLine(line); }
+
+ParseRequest::ParseRequest(const ParseRequest &other) : _tokens(other._tokens) {}
+ParseRequest::~ParseRequest() {}
+
+ParseRequest	&ParseRequest::operator=(const ParseRequest &other)
+{
+	if (&other != this)
+		_tokens = other._tokens;
+	return (*this);
+}
+
+void	ParseRequest::parseLine(const std::string &line)
 {
 	std::size_t	position = 0, tokenStart = 0;
 
@@ -14,20 +26,6 @@ ParseRequest::ParseRequest(const std::string &line)
 		_tokens.push_back(line.substr(tokenStart, position - tokenStart));
 		tokenStart = position + 2;
 	}
-	// for (size_t i = 0; i < _tokens.size(); i++)
-	// {
-	// 	std::cout << _tokens[i] << std::endl;
-	// }
-}
-
-ParseRequest::ParseRequest(const ParseRequest &other) : _tokens(other._tokens) {}
-ParseRequest::~ParseRequest() {}
-
-ParseRequest	&ParseRequest::operator=(const ParseRequest &other)
-{
-	if (&other != this)
-		_tokens = other._tokens;
-	return (*this);
 }
 
 const std::vector<std::string>	&ParseRequest::getTokens() const { return (_tokens); }

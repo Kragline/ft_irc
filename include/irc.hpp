@@ -3,6 +3,8 @@
 #include "ClientState.hpp"
 #include "ParseRequest.hpp"
 
+#include "Server.hpp"
+
 #define CAP_LS "CAP * LS :\r\n"
 #define WELCOME_001 "001 <nick> :Welcome to the IRC Network <nick>\r\n"
 #define WELCOME_002 "002 <nick> :Your host is server.name, running version 1.0\r\n"

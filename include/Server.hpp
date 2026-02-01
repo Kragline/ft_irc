@@ -1,0 +1,37 @@
+#pragma once
+
+#include <stdexcept>
+#include "irc.hpp"
+
+// compliler needs this because of circular dependencies
+// if you dont like this approach just remove this header from irc.hpp and include it separately
+struct sockaddr_in;
+
+class Server
+{
+private:
+	int							_fd;
+	struct sockaddr_in			_clientInfo;
+
+	ParseRequest				_parser;
+	std::vector<ClientState>	_clients;
+public:
+	Server();
+	Server(int port, const std::string &password); // TODO
+	Server(const Server &other);
+
+	Server	&operator=(const Server &other);
+	~Server();
+
+	void	serverLoop();
+private:
+	void	_initServer();
+	void	_handleRegistration(int cfd, char *buffer);
+
+	void	_addNick(const char *buf, ClientState &client);
+	void	_addUser(const char *buf, ClientState &client);
+	void	_capLs(int fd);
+	void	_emptyJoin(int fd);
+	void	_welcome(int fd);
+	void    _pong(int fd);
+};

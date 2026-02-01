@@ -14,7 +14,7 @@ HEADER_DIR = include/
 SOURCES_DIR = sources/
 OBJECTS_DIR = objects/
 
-FILENAMES = main ClientState ParseRequest
+FILENAMES = main ClientState ParseRequest Server
 
 SOURCES = $(addsuffix .cpp, $(addprefix $(SOURCES_DIR), $(FILENAMES)))
 OBJECTS = $(addsuffix .o, $(addprefix $(OBJECTS_DIR), $(FILENAMES)))
