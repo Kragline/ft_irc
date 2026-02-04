@@ -18,6 +18,7 @@ void	ParseRequest::parseLine(const std::string &line)
 {
 	std::size_t	position = 0, tokenStart = 0;
 
+	resetParser();
 	while (tokenStart < line.size())
 	{
 		position = line.find("\r\n", tokenStart);
@@ -29,4 +30,4 @@ void	ParseRequest::parseLine(const std::string &line)
 }
 
 const std::vector<std::string>	&ParseRequest::getTokens() const { return (_tokens); }
-void	ParseRequest::resetParser() { _tokens.clear(); }
+void	ParseRequest::resetParser() { if (!_tokens.empty()) _tokens.clear(); }

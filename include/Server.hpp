@@ -11,13 +11,15 @@ class Server
 {
 private:
 	int							_fd;
+	int							_port;
+	std::string					_password;
+
 	struct sockaddr_in			_clientInfo;
 
 	ParseRequest				_parser;
 	std::vector<ClientState>	_clients;
 public:
-	Server();
-	Server(int port, const std::string &password); // TODO
+	Server(int port, const std::string &password);
 	Server(const Server &other);
 
 	Server	&operator=(const Server &other);
@@ -25,6 +27,9 @@ public:
 
 	void	serverLoop();
 private:
+
+	Server();
+	
 	void	_initServer();
 	void	_handleRegistration(int cfd, char *buffer);
 

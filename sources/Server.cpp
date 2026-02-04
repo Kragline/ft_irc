@@ -1,6 +1,12 @@
 #include "Server.hpp"
 
-Server::Server() : _fd(-1)
+Server::Server() : _fd(-1), _port(5555), _password("bismillah")
+{
+	std::memset(&_clientInfo, 0, sizeof(_clientInfo));
+	_initServer();
+}
+
+Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _password(password)
 {
 	std::memset(&_clientInfo, 0, sizeof(_clientInfo));
 	_initServer();
@@ -28,7 +34,7 @@ void	Server::_initServer()
 	std::memset(&serverInfo, 0, sizeof(serverInfo));
 	serverInfo.sin_family = AF_INET;
 	serverInfo.sin_addr.s_addr = 0;
-	serverInfo.sin_port = htons(5555);
+	serverInfo.sin_port = htons(_port);
 
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd == -1)
