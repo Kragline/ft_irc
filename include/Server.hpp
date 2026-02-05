@@ -37,6 +37,7 @@ private:
 	void	_addUser(const char *buf, ClientState &client);
 	void	_capLs(int fd);
 	void	_emptyJoin(int fd);
-	void	_welcome(int fd);
+	void	_welcome(int fd, ClientState &client);
 	void    _pong(int fd);
+    void    _motd(int fd, ClientState &client);
 };

@@ -108,17 +108,81 @@ void	Server::_emptyJoin(int fd)
 	send(fd, JOIN_461, strlen(JOIN_461), 0);
 }
 
-void	Server::_welcome(int fd)
+void	Server::_welcome(int fd, ClientState &client)
 {
-	send(fd, WELCOME_001, strlen(WELCOME_001), 0);
-	send(fd, WELCOME_002, strlen(WELCOME_002), 0);
-	send(fd, WELCOME_003, strlen(WELCOME_003), 0);
-	send(fd, WELCOME_004, strlen(WELCOME_004), 0);
+    std::string welcome_001("001 " + client.getNick() + " :Welcome to the IRC Network " + client.getNick() + "\r\n");
+    std::string welcome_002("002 " + client.getNick() + " :Your host is " + client.getHostname() + "\r\n");
+    std::string welcome_003("003 " + client.getNick() + " :This server was created ...\r\n");
+
+	send(fd, welcome_001.c_str(), welcome_001.length(), 0);
+	send(fd, welcome_002.c_str(), welcome_002.length(), 0);
+	send(fd, welcome_003.c_str(), welcome_003.length(), 0);
 }
 
 void    Server::_pong(int fd)
 {
     send(fd, "PONG localhost\r\n", 16, 0);
+}
+
+void    Server::_motd(int fd, ClientState &client)
+{
+    std::string motd_375("375 " + client.getNick() + " :- \r\n");
+
+    std::string motd_372_1("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠛⠛⠛⠋⠉⠈⠉⠉⠉⠉⠛⠻⢿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_2("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⡿⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣿⣿⣿⣿\r\n");
+    std::string motd_372_3("372 " + client.getNick() + " :- ⣿⣿⣿⣿⡏⣀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿\r\n");
+    std::string motd_372_4("372 " + client.getNick() + " :- ⣿⣿⣿⢏⣴⣿⣷⠀⠀⠀⠀⠀⢾⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿\r\n");
+    std::string motd_372_5("372 " + client.getNick() + " :- ⣿⣿⣟⣾⣿⡟⠁⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣷⢢⠀⠀⠀⠀⠀⠀⠀⢸⣿\r\n");
+    std::string motd_372_6("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣟⠀⡴⠄⠀⠀⠀⠀⠀⠀⠙⠻⣿⣿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⣿\r\n");
+    std::string motd_372_7("372 " + client.getNick() + " :- ⣿⣿⣿⠟⠻⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠶⢴⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⣿\r\n");
+    std::string motd_372_8("372 " + client.getNick() + " :- ⣿⣁⡀⠀⠀⢰⢠⣦⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⣿⣿⡄⠀⣴⣶⣿⡄⣿\r\n");
+    std::string motd_372_9("372 " + client.getNick() + " :- ⣿⡋⠀⠀⠀⠎⢸⣿⡆⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⠗⢘⣿⣟⠛⠿⣼\r\n");
+    std::string motd_372_10("372 " + client.getNick() + " :- ⣿⣿⠋⢀⡌⢰⣿⡿⢿⡀⠀⠀⠀⠀⠀⠙⠿⣿⣿⣿⣿⣿⡇⠀⢸⣿⣿⣧⢀⣼\r\n");
+    std::string motd_372_11("372 " + client.getNick() + " :- ⣿⣿⣷⢻⠄⠘⠛⠋⠛⠃⠀⠀⠀⠀⠀⢿⣧⠈⠉⠙⠛⠋⠀⠀⠀⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_12("372 " + client.getNick() + " :- ⣿⣿⣧⠀⠈⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠟⠀⠀⠀⠀⢀⢃⠀⠀⢸⣿⣿⣿⣿\r\n");
+    std::string motd_372_13("372 " + client.getNick() + " :- ⣿⣿⡿⠀⠴⢗⣠⣤⣴⡶⠶⠖⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡸⠀⣿⣿⣿⣿\r\n");
+    std::string motd_372_14("372 " + client.getNick() + " :- ⣿⣿⣿⡀⢠⣾⣿⠏⠀⠠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠉⠀⣿⣿⣿⣿\r\n");
+    std::string motd_372_15("372 " + client.getNick() + " :- ⣿⣿⣿⣧⠈⢹⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿\r\n");
+    std::string motd_372_16("372 " + client.getNick() + " :- ⣿⣿⣿⣿⡄⠈⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_17("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_18("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_19("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣦⣄⣀⣀⣀⣀⠀⠀⠀⠀⠘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_20("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_21("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠙⣿⣿⡟⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_22("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⠀⠁⠀⠀⠹⣿⠃⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_23("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⢐⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
+    std::string motd_372_24("372 " + client.getNick() + " :- ⣿⣿⣿⣿⠿⠛⠉⠉⠁⠀⢻⣿⡇⠀⠀⠀⠀⠀⠀⢀⠈⣿⣿⡿⠉⠛⠛⠛⠉⠉\r\n");
+    std::string motd_372_25("372 " + client.getNick() + " :- ⣿⡿⠋⠁⠀⠀⢀⣀⣠⡴⣸⣿⣇⡄⠀⠀⠀⠀⢀⡿⠄⠙⠛⠀⣀⣠⣤⣤⠄\r\n");
+
+    std::string motd_376("376 " + client.getNick() + ":- End of MOTD.\r\n");
+
+    send(fd, motd_375.c_str(), motd_375.length(), 0);
+    send(fd, motd_372_1.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_2.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_3.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_4.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_5.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_6.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_7.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_8.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_9.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_10.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_11.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_12.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_13.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_14.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_15.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_16.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_17.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_18.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_19.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_20.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_21.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_22.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_23.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_24.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_372_25.c_str(), motd_372_1.length(), 0);
+    send(fd, motd_376.c_str(), motd_376.length(), 0);
 }
 
 void	Server::_handleRegistration(int cfd, char *buffer)
@@ -139,19 +203,14 @@ void	Server::_handleRegistration(int cfd, char *buffer)
 				_capLs(cfd);
 			else if (tokens[i].find("JOIN :") != std::string::npos)
 				_emptyJoin(cfd);
-			else if (tokens[i].find("CAP END") != std::string::npos)
-				_welcome(cfd);
 			else if (tokens[i].find("NICK") != std::string::npos)
 				_addNick(tokens[i].c_str(), newClient);
 			else if (tokens[i].find("USER") != std::string::npos)
 			{
 				_addUser(tokens[i].c_str(), newClient); 
 				_clients.push_back(newClient);
-				std::cout << "Nick: " << _clients.back().getNick() << std::endl;
-				std::cout << "User: " << _clients.back().getUser() << std::endl;
-				std::cout << "Hostname: " << _clients.back().getHostname() << std::endl;
-				std::cout << "Servername: " << _clients.back().getServername() << std::endl;
-				std::cout << "Real Name: " << _clients.back().getRealName() << std::endl;
+				_welcome(cfd, newClient);
+                _motd(cfd, newClient);
 			}
 			else if (tokens[i].find("PING") != std::string::npos)
 				_pong(cfd);
