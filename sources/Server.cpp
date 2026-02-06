@@ -12,7 +12,7 @@ Server::Server(int port, const std::string &password) : _fd(-1), _port(port), _p
 	_initServer();
 }
 
-Server::Server(const Server &other) : _fd(other._fd), _clientInfo(other._clientInfo), _clients(other._clients) {}
+Server::Server(const Server &other) : _fd(other._fd), _clientInfo(other._clientInfo), _clients(other._clients), _channels(other._channels) {}
 
 Server	&Server::operator=(const Server &other)
 {
@@ -21,6 +21,7 @@ Server	&Server::operator=(const Server &other)
 		_fd = other._fd;
 		_clientInfo = other._clientInfo;
 		_clients = other._clients;
+		_channels = other._channels;
 	}
 	return (*this);
 }
@@ -60,7 +61,7 @@ void	Server::_initServer()
 	_fd = fd;
 }
 
-void	Server::_addNick(const char *buf, ClientState &client)
+void	Server::_addNick(const char *buf, Client &client)
 {
     std::string temp;
 	int		i;
@@ -70,7 +71,7 @@ void	Server::_addNick(const char *buf, ClientState &client)
 	client.setNick(temp);
 }
 
-void	Server::_addUser(const char *buf, ClientState &client)
+void	Server::_addUser(const char *buf, Client &client)
 {
     std::string temp;
 	int		i = 5;
@@ -108,7 +109,7 @@ void	Server::_emptyJoin(int fd)
 	send(fd, JOIN_461, strlen(JOIN_461), 0);
 }
 
-void	Server::_welcome(int fd, ClientState &client)
+void	Server::_welcome(int fd, Client &client)
 {
     std::string welcome_001("001 " + client.getNick() + " :Welcome to the IRC Network " + client.getNick() + "\r\n");
     std::string welcome_002("002 " + client.getNick() + " :Your host is " + client.getHostname() + "\r\n");
@@ -124,7 +125,7 @@ void    Server::_pong(int fd)
     send(fd, "PONG localhost\r\n", 16, 0);
 }
 
-void    Server::_motd(int fd, ClientState &client)
+void    Server::_motd(int fd, Client &client)
 {
     std::string motd_375("375 " + client.getNick() + " :- \r\n");
 
@@ -188,7 +189,7 @@ void    Server::_motd(int fd, ClientState &client)
 void	Server::_handleRegistration(int cfd, char *buffer)
 {
 	std::vector<std::string>  tokens;
-	ClientState	newClient(cfd);
+	Client	newClient(cfd);
 
 	while (recv(cfd, buffer, 512, 0) > 0)
 	{
@@ -215,7 +216,6 @@ void	Server::_handleRegistration(int cfd, char *buffer)
 			else if (tokens[i].find("PING") != std::string::npos)
 				_pong(cfd);
 		}
-		_parser.resetParser();
 	}
 }
 

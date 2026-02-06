@@ -16,16 +16,9 @@
 #include <poll.h>
 /* --------------------*/
 
-typedef enum Role
-{
-	OPERATOR,
-	REGULAR
-}	role_e;
-
-class ClientState
+class Client
 {
 	int         _fd;
-	role_e      _role;
 
 	std::string _nick;
 	std::string _user;
@@ -33,19 +26,15 @@ class ClientState
 	std::string _servername;
 	std::string _realName;
 public:
-	ClientState();
-	ClientState(int fd, role_e role = REGULAR);
-	ClientState(const ClientState &other);
+	Client(int fd);
+	Client(const Client &other);
 
-	ClientState	&operator=(const ClientState &other);
+	Client	&operator=(const Client &other);
 
-	~ClientState();
+	~Client();
 
 	int		getFd() const;
 	void	setFd(int newFd);
-
-	role_e	getRole() const;
-	void	setRole(role_e newRole);
 
 	const std::string	&getNick() const;
 	void				setNick(const std::string &newNick);
@@ -53,10 +42,10 @@ public:
 	const std::string	&getUser() const;
 	void				setUser(const std::string &newUser);
 
-  const std::string	&getHostname() const;
+	const std::string	&getHostname() const;
 	void				setHostname(const std::string &newHostname);
 
-  const std::string	&getServername() const;
+	const std::string	&getServername() const;
 	void				setServername(const std::string &newServername);
 
 	const std::string	&getRealName() const;

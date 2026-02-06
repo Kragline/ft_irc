@@ -17,7 +17,8 @@ private:
 	struct sockaddr_in			_clientInfo;
 
 	ParseRequest				_parser;
-	std::vector<ClientState>	_clients;
+	std::vector<Client>			_clients;
+	std::vector<Channel>		_channels;
 public:
 	Server(int port, const std::string &password);
 	Server(const Server &other);
@@ -33,11 +34,11 @@ private:
 	void	_initServer();
 	void	_handleRegistration(int cfd, char *buffer);
 
-	void	_addNick(const char *buf, ClientState &client);
-	void	_addUser(const char *buf, ClientState &client);
+	void	_addNick(const char *buf, Client &client);
+	void	_addUser(const char *buf, Client &client);
 	void	_capLs(int fd);
 	void	_emptyJoin(int fd);
-	void	_welcome(int fd, ClientState &client);
+	void	_welcome(int fd, Client &client);
 	void    _pong(int fd);
-    void    _motd(int fd, ClientState &client);
+    void    _motd(int fd, Client &client);
 };

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ClientState.hpp"
+#include "Client.hpp"
+#include "Channel.hpp"
 #include "ParseRequest.hpp"
 
 #include "Server.hpp"
