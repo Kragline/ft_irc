@@ -8,14 +8,6 @@
 #include <cstring>
 #include <csignal>
 
-/* --- NETWORK SHIT ---*/
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <poll.h>
-/* --------------------*/
-
 class Client
 {
 	int         _fd;

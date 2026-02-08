@@ -1,7 +1,22 @@
 #pragma once
 
 #include <stdexcept>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/epoll.h>
+
+/* --- NETWORK SHIT ---*/
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+/* --------------------*/
+
 #include "irc.hpp"
+
+#define MAX_EVENTS 10
 
 // compliler needs this because of circular dependencies
 // if you dont like this approach just remove this header from irc.hpp and include it separately
@@ -11,6 +26,7 @@ class Server
 {
 private:
 	int							_fd;
+    int                         _epoll_fd;
 	int							_port;
 	std::string					_password;
 
@@ -32,10 +48,13 @@ private:
 	Server();
 	
 	void	_initServer();
-	void	_handleRegistration(int cfd, char *buffer);
+    int     _setNonblocking(int fd);
+    void    _handleMessages(int cfd, char *buffer);
 
+    bool    _pass(const char *buf);
 	void	_addNick(const char *buf, Client &client);
 	void	_addUser(const char *buf, Client &client);
+    void    _mode(const char *buf, int fd);
 	void	_capLs(int fd);
 	void	_emptyJoin(int fd);
 	void	_welcome(int fd, Client &client);
