@@ -254,11 +254,11 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	Client	newClient(cfd);
     ssize_t count;
 
-    bzero(buffer, std::strlen(buffer));
+    std::memset(buffer, 0x0, std::strlen(buffer));
 	while ((count = recv(cfd, buffer, 512, 0)) > 0)
 	{
 		request += buffer;
-		bzero(buffer, std::strlen(buffer));
+        std::memset(buffer, 0x0, std::strlen(buffer));
 	}
     
     _parser.parseLine(request);
