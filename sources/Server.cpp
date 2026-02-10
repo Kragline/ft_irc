@@ -302,7 +302,7 @@ void	Server::_handleMessages(int cfd, char *buffer)
         if (errno != EAGAIN)
         {
             close(cfd);
-            perror("recv");
+            throw std::runtime_error("recv");
         }
     }
 }
@@ -339,14 +339,14 @@ void	Server::serverLoop()
                         else
                         {
                             close(cfd);
-                            perror("accept");
+                            throw std::runtime_error("accept");
                             break ;
                         }
                     }
                     if (_setNonblocking(cfd) == -1)
                     {
                          close(cfd);
-                         perror("_setNonblocking");
+                         throw std::runtime_error("_setNonblocking");
                          break ;
                     }
                     event.events = EPOLLIN | EPOLLET;
@@ -354,7 +354,7 @@ void	Server::serverLoop()
                     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, cfd, &event) == -1)
                     {
                         close(cfd);
-                        perror("epoll_ctl");
+                        throw std::runtime_error("epoll_ctl");
                     }
                 }
             }
