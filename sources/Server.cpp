@@ -307,6 +307,15 @@ void	Server::_handleMessages(int cfd, char *buffer)
     }
 }
 
+Client	*Server::findClient(int targetFd)
+{
+    for (size_t i = 0; i < _clients.size(); i++)
+        if (targetFd == _clients[i].getFd())
+            return (&_clients[i]);
+    
+    return (NULL);
+}
+
 void	Server::serverLoop()
 {
 	int			        cfd;

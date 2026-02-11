@@ -43,6 +43,7 @@ public:
 	~Server();
 
 	void	serverLoop();
+	Client	*findClient(int targetFd);
 private:
 
 	Server();
