@@ -251,14 +251,15 @@ void	Server::_handleMessages(int cfd, char *buffer)
 {
     std::string request;
 	std::vector<std::string>  tokens;
-	Client	newClient(cfd);
+    int     client_i = findClientIndex(cfd);
+    Client  *client = findClient(cfd);
     ssize_t count;
 
-    std::memset(buffer, 0x0, std::strlen(buffer));
+    std::memset(buffer, 0x0, 512);
 	while ((count = recv(cfd, buffer, 512, 0)) > 0)
 	{
 		request += buffer;
-        std::memset(buffer, 0x0, std::strlen(buffer));
+        std::memset(buffer, 0x0, 512);
 	}
     
     _parser.parseLine(request);
@@ -272,20 +273,33 @@ void	Server::_handleMessages(int cfd, char *buffer)
                 close(cfd);
                 break ;
             }
+            else
+                client->setAuthorized(true);
         }
 		if (tokens[i].find("CAP LS") != std::string::npos)
 			_capLs(cfd);
 		else if (tokens[i].find("JOIN :") != std::string::npos)
 			_emptyJoin(cfd);
-		else if (tokens[i].find("NICK") != std::string::npos)
-			_addNick(tokens[i].c_str(), newClient);
-		else if (tokens[i].find("USER") != std::string::npos)
-		{
-			_addUser(tokens[i].c_str(), newClient); 
-			_clients.push_back(newClient);
-			_welcome(cfd, newClient);
-            //_motd(cfd, newClient);
-		}
+        if (tokens[i].find("NICK") != std::string::npos)
+        {
+		    if (client->getAuthorized() == false)
+            {
+                close(cfd);
+                break ;
+            }
+            _addNick(tokens[i].c_str(), *client);
+        }
+	    else if (tokens[i].find("USER") != std::string::npos)
+	    {
+		    if (client->getAuthorized() == false)
+            {
+                close(cfd);
+                break ;
+            }
+            _addUser(tokens[i].c_str(), *client); 
+	    	_welcome(cfd, *client);
+          //_motd(cfd, client);
+	    }
         else  if (tokens[i].find("MODE") != std::string::npos)
             _mode(tokens[i].c_str(), cfd);
         else if (tokens[i].find("PING") != std::string::npos)
@@ -296,15 +310,26 @@ void	Server::_handleMessages(int cfd, char *buffer)
     {
         std::cout << "Client " << cfd << " clossed the connection" << std::endl;
         close(cfd);
+        _clients.erase(_clients.begin() + client_i);
     }
     else if (count == -1)
     {
         if (errno != EAGAIN)
         {
             close(cfd);
+            _clients.erase(_clients.begin() + client_i);
             throw std::runtime_error("recv");
         }
     }
+}
+
+int	Server::findClientIndex(int targetFd)
+{
+    for (size_t i = 0; i < _clients.size(); i++)
+        if (targetFd == _clients[i].getFd())
+            return (i);
+    
+    return (-1);
 }
 
 Client	*Server::findClient(int targetFd)
@@ -324,6 +349,7 @@ void	Server::serverLoop()
     struct epoll_event  event;
     struct epoll_event  events[MAX_EVENTS];
 	socklen_t	        clientSize = 0;
+    Client              temp_client(-1);
 
 	while (true)
 	{
@@ -336,7 +362,7 @@ void	Server::serverLoop()
         }
         for (int i = 0; i < n_events; i++)
         {
-            if (events[i].data.fd == _fd)
+            if (events[i].data.fd == _fd)   // New Client
             {
                 while (true)
                 {
@@ -365,13 +391,12 @@ void	Server::serverLoop()
                         close(cfd);
                         throw std::runtime_error("epoll_ctl");
                     }
+                    temp_client.setFd(cfd);
+                    _clients.push_back(temp_client);
                 }
             }
-            else
-            {
-                cfd = events[i].data.fd;
-                _handleMessages(cfd, buffer); 
-            }
+            else        // Existing Client
+                _handleMessages(events[i].data.fd, buffer); 
         }
 	}
 }

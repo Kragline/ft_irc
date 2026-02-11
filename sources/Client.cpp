@@ -1,8 +1,8 @@
 #include "Client.hpp"
 
-Client::Client(int fd) : _fd(fd) {}
+Client::Client(int fd) : _fd(fd), _authorized(false) {}
 
-Client::Client(const Client &other) : _fd(other._fd), _nick(other._nick), _user(other._user), _hostname(other._hostname), _servername(other._servername), _realName(other._realName) {}
+Client::Client(const Client &other) : _fd(other._fd), _authorized(other._authorized), _nick(other._nick), _user(other._user), _hostname(other._hostname), _servername(other._servername), _realName(other._realName) {}
 
 Client	&Client::operator=(const Client &other)
 {
@@ -10,6 +10,7 @@ Client	&Client::operator=(const Client &other)
 		return (*this);
 	
 	_fd = other._fd;
+    _authorized = other._authorized;
 	_nick = other._nick;
     _user = other._user;
     _hostname = other._hostname;
@@ -23,6 +24,9 @@ Client::~Client() {}
 
 int		Client::getFd() const { return (_fd); }
 void	Client::setFd(int newFd) { _fd = newFd; }
+
+bool    Client::getAuthorized() const {return (_authorized); }
+void    Client::setAuthorized(bool newStatus) {_authorized = newStatus;}
 
 const std::string	&Client::getNick() const { return (_nick); }
 void				Client::setNick(const std::string &newNick) { _nick = newNick; }

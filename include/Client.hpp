@@ -11,6 +11,7 @@
 class Client
 {
 	int         _fd;
+    bool        _authorized;
 
 	std::string _nick;
 	std::string _user;
@@ -27,6 +28,12 @@ public:
 
 	int		getFd() const;
 	void	setFd(int newFd);
+
+    bool    getAuthorized() const;
+    void    setAuthorized(bool newStatus);
+
+    bool    getCapListed() const;
+    void    setCapListed(bool newStatus);
 
 	const std::string	&getNick() const;
 	void				setNick(const std::string &newNick);

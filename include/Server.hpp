@@ -44,6 +44,7 @@ public:
 
 	void	serverLoop();
 	Client	*findClient(int targetFd);
+	int	    findClientIndex(int targetFd);
 private:
 
 	Server();
