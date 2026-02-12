@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <sys/epoll.h>
 
+#include <algorithm>
+
 /* --- NETWORK SHIT ---*/
 #include <sys/types.h>
 #include <arpa/inet.h>
@@ -43,8 +45,7 @@ public:
 	~Server();
 
 	void	serverLoop();
-	Client	*findClient(int targetFd);
-	int	    findClientIndex(int targetFd);
+	std::vector<Client>::iterator	findClient(int targetFd);
 private:
 
 	Server();
@@ -62,4 +63,14 @@ private:
 	void	_welcome(int fd, Client &client);
 	void    _pong(int fd);
     void    _motd(int fd, Client &client);
+
+private:
+	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
+	{
+	private:
+		int	_targetFd;
+	public:
+		explicit	FdComparator(int targetFd) : _targetFd(targetFd) {}
+		bool		operator()(const Client &client) const { return (client.getFd() == _targetFd); }
+	};
 };

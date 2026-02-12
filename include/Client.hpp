@@ -19,6 +19,7 @@ class Client
 	std::string _servername;
 	std::string _realName;
 public:
+	Client();
 	Client(int fd);
 	Client(const Client &other);
 

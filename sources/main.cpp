@@ -15,18 +15,25 @@ int	main(int argc, char **argv)
 	}
 
 	std::stringstream	portStream(argv[1]);
+	std::string			password(argv[2]);
 	int					port;
 	
 	portStream >> port;
-	if (portStream.fail())
+	if (portStream.fail() || port < 1025 || port > 65535)
 	{
 		std::cerr << RED << "Error: " WHITE "Wrong value for port" << std::endl;
 		return (1);
 	}
 
+	if (password.find_first_not_of(" \t") == std::string::npos)
+	{
+		std::cerr << RED << "Error: " WHITE "Wrong value for password" << std::endl;
+		return (1);
+	}
+
 	try
 	{
-		Server	server(port, argv[2]);
+		Server	server(port, password);
 		server.serverLoop();
 	}
 	catch(const std::exception& e)

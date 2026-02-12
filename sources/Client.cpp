@@ -1,5 +1,7 @@
 #include "Client.hpp"
 
+Client::Client() : _fd(-1), _authorized(false) {}
+
 Client::Client(int fd) : _fd(fd), _authorized(false) {}
 
 Client::Client(const Client &other) : _fd(other._fd), _authorized(other._authorized), _nick(other._nick), _user(other._user), _hostname(other._hostname), _servername(other._servername), _realName(other._realName) {}
