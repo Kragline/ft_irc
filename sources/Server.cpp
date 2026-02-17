@@ -165,11 +165,6 @@ void	Server::_capLs(int fd)
 	send(fd, CAP_LS, std::strlen(CAP_LS), 0);
 }
 
-void	Server::_emptyJoin(int fd)
-{
-	send(fd, JOIN_461, strlen(JOIN_461), 0);
-}
-
 void	Server::_welcome(int fd, Client &client)
 {
     std::string welcome_001("001 " + client.getNick() + " :Welcome to the IRC Network " + client.getNick() + "\r\n");
@@ -247,6 +242,44 @@ void    Server::_motd(int fd, Client &client)
     send(fd, motd_376.c_str(), motd_376.length(), 0);
 }
 
+
+void    Server::_join(int fd, const char *buf, Client &client)
+{
+    int         operator_fd = fd;
+    std::string temp;
+	int		    i = 5;
+
+    if (buf[i] == ':')
+    {
+	    send(fd, JOIN_461, strlen(JOIN_461), 0);
+        return ;
+    }
+    if (buf[i] != '#')
+        return ;
+    for (; buf[i] != '\0'; i++)
+        temp.append(1, buf[i]);
+    std::cout << temp << std::endl;
+    for (i = 0; i < _channels.size(); i++)
+    {
+        if (_channels[i].getName() == temp)
+        {
+            operator_fd = _channels[i].getOperator().getFd();
+            break ;
+        }
+    }
+
+    if (operator_fd == fd)
+    {
+        Operator    op(operator_fd);
+        Channel     channel(&op);
+
+        channel.setName(temp);
+       _channels.push_back(channel);
+    }
+    //TODO   TOPIC
+    (void)client;
+}
+
 void	Server::_handleMessages(int cfd, char *buffer)
 {
 	std::string						request;
@@ -265,6 +298,7 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	tokens = _parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
+        std::cout << tokens[i] << std::endl;
 		if (tokens[i].find("PASS") != std::string::npos)
 		{
 			if (_pass(tokens[i].c_str()) == false)
@@ -277,8 +311,6 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		}
 		if (tokens[i].find("CAP LS") != std::string::npos)
 			_capLs(cfd);
-		else if (tokens[i].find("JOIN :") != std::string::npos)
-			_emptyJoin(cfd);
 		if (tokens[i].find("NICK") != std::string::npos)
 		{
 			if ((*client).getAuthorized() == false)
@@ -303,6 +335,8 @@ void	Server::_handleMessages(int cfd, char *buffer)
 			_mode(tokens[i].c_str(), cfd);
 		else if (tokens[i].find("PING") != std::string::npos)
 			_pong(cfd);
+        else if (tokens[i].find("JOIN") != std::string::npos)
+            _join(cfd, tokens[i].c_str(), *client);
 	}
 
 	if (count == 0)

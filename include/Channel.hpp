@@ -7,6 +7,7 @@ class Channel
 private:
 	const Operator				*_operator;
 	std::vector<const Client *>	_members;
+    std::string                 _name;
 
 public:
 	Channel(const Operator *op);
@@ -16,6 +17,9 @@ public:
 
 	~Channel();
 
-	const Operator				&getOpearator() const ;
+	const Operator				&getOperator() const ;
 	std::vector<const Client *>	&getMembers();
+
+    std::string                 getName(void) const ;
+    void                        setName(std::string name);
 };

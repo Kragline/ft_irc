@@ -59,10 +59,10 @@ private:
 	void	_addUser(const char *buf, Client &client);
     void    _mode(const char *buf, int fd);
 	void	_capLs(int fd);
-	void	_emptyJoin(int fd);
 	void	_welcome(int fd, Client &client);
 	void    _pong(int fd);
     void    _motd(int fd, Client &client);
+    void    _join(int fd, const char *buf, Client &client);
 
 private:
 	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use

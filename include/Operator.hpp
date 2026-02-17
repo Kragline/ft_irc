@@ -5,6 +5,7 @@
 class Operator : public Client
 {
 public:
+	Operator();
 	Operator(int fd);
 	Operator(const Operator &other);
 

@@ -1,5 +1,7 @@
 #include "Operator.hpp"
 
+Operator::Operator() : Client() {}
+
 Operator::Operator(int fd) : Client(fd) {}
 
 Operator::Operator(const Operator &other) : Client(other) {}

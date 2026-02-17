@@ -17,5 +17,8 @@ Channel	&Channel::operator=(const Channel &other)
 
 Channel::~Channel() {}
 
-const Operator				&Channel::getOpearator() const { return (*_operator); }
+const Operator				&Channel::getOperator() const { return (*_operator); }
 std::vector<const Client *>	&Channel::getMembers() { return (_members); }
+
+std::string                 Channel::getName() const { return (_name); }
+void                        Channel::setName(std::string name) { _name = name; }
