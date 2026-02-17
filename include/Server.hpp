@@ -34,7 +34,6 @@ private:
 
 	struct sockaddr_in			_clientInfo;
 
-	ParseRequest				_parser;
 	std::vector<Client>			_clients;
 	std::vector<Channel>		_channels;
 public:
@@ -62,7 +61,7 @@ private:
 	void	_emptyJoin(int fd);
 	void	_welcome(int fd, Client &client);
 	void    _pong(int fd);
-    void    _motd(int fd, Client &client);
+	void	_tryRegister(Client &client);
 
 private:
 	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
