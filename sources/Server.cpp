@@ -181,65 +181,16 @@ void    Server::_pong(int fd)
     send(fd, "PONG localhost\r\n", 16, 0);
 }
 
-void    Server::_motd(int fd, Client &client)
+void	Server::_tryRegister(Client &client)
 {
-    std::string motd_375("375 " + client.getNick() + " :- Message of the day - \r\n");
-
-    std::string motd_372_1("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠛⠛⠛⠋⠉⠈⠉⠉⠉⠉⠛⠻⢿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_2("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⡿⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣿⣿⣿⣿\r\n");
-    std::string motd_372_3("372 " + client.getNick() + " :- ⣿⣿⣿⣿⡏⣀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣤⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿\r\n");
-    std::string motd_372_4("372 " + client.getNick() + " :- ⣿⣿⣿⢏⣴⣿⣷⠀⠀⠀⠀⠀⢾⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿\r\n");
-    std::string motd_372_5("372 " + client.getNick() + " :- ⣿⣿⣟⣾⣿⡟⠁⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⣿⣿⣷⢢⠀⠀⠀⠀⠀⠀⠀⢸⣿\r\n");
-    std::string motd_372_6("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣟⠀⡴⠄⠀⠀⠀⠀⠀⠀⠙⠻⣿⣿⣿⣿⣷⣄⠀⠀⠀⠀⠀⠀⠀⣿\r\n");
-    std::string motd_372_7("372 " + client.getNick() + " :- ⣿⣿⣿⠟⠻⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠶⢴⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⣿\r\n");
-    std::string motd_372_8("372 " + client.getNick() + " :- ⣿⣁⡀⠀⠀⢰⢠⣦⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⣿⣿⡄⠀⣴⣶⣿⡄⣿\r\n");
-    std::string motd_372_9("372 " + client.getNick() + " :- ⣿⡋⠀⠀⠀⠎⢸⣿⡆⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⠗⢘⣿⣟⠛⠿⣼\r\n");
-    std::string motd_372_10("372 " + client.getNick() + " :- ⣿⣿⠋⢀⡌⢰⣿⡿⢿⡀⠀⠀⠀⠀⠀⠙⠿⣿⣿⣿⣿⣿⡇⠀⢸⣿⣿⣧⢀⣼\r\n");
-    std::string motd_372_11("372 " + client.getNick() + " :- ⣿⣿⣷⢻⠄⠘⠛⠋⠛⠃⠀⠀⠀⠀⠀⢿⣧⠈⠉⠙⠛⠋⠀⠀⠀⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_12("372 " + client.getNick() + " :- ⣿⣿⣧⠀⠈⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠟⠀⠀⠀⠀⢀⢃⠀⠀⢸⣿⣿⣿⣿\r\n");
-    std::string motd_372_13("372 " + client.getNick() + " :- ⣿⣿⡿⠀⠴⢗⣠⣤⣴⡶⠶⠖⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡸⠀⣿⣿⣿⣿\r\n");
-    std::string motd_372_14("372 " + client.getNick() + " :- ⣿⣿⣿⡀⢠⣾⣿⠏⠀⠠⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠉⠀⣿⣿⣿⣿\r\n");
-    std::string motd_372_15("372 " + client.getNick() + " :- ⣿⣿⣿⣧⠈⢹⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿\r\n");
-    std::string motd_372_16("372 " + client.getNick() + " :- ⣿⣿⣿⣿⡄⠈⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_17("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_18("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_19("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣦⣄⣀⣀⣀⣀⠀⠀⠀⠀⠘⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_20("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_21("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠙⣿⣿⡟⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_22("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠇⠀⠁⠀⠀⠹⣿⠃⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_23("372 " + client.getNick() + " :- ⣿⣿⣿⣿⣿⣿⣿⣿⡿⠛⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⢐⣿⣿⣿⣿⣿⣿⣿⣿⣿\r\n");
-    std::string motd_372_24("372 " + client.getNick() + " :- ⣿⣿⣿⣿⠿⠛⠉⠉⠁⠀⢻⣿⡇⠀⠀⠀⠀⠀⠀⢀⠈⣿⣿⡿⠉⠛⠛⠛⠉⠉\r\n");
-    std::string motd_372_25("372 " + client.getNick() + " :- ⣿⡿⠋⠁⠀⠀⢀⣀⣠⡴⣸⣿⣇⡄⠀⠀⠀⠀⢀⡿⠄⠙⠛⠀⣀⣠⣤⣤⠄\r\n");
-
-    std::string motd_376("376 " + client.getNick() + ":- End of /MOTD command\r\n");
-
-    send(fd, motd_375.c_str(), motd_375.length(), 0);
-    send(fd, motd_372_1.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_2.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_3.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_4.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_5.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_6.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_7.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_8.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_9.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_10.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_11.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_12.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_13.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_14.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_15.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_16.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_17.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_18.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_19.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_20.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_21.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_22.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_23.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_24.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_372_25.c_str(), motd_372_1.length(), 0);
-    send(fd, motd_376.c_str(), motd_376.length(), 0);
+	if (client.isRegistered())
+		return ;
+	
+	if (client.hasPass() && client.hasNick() && client.hasUser())
+	{
+		client.setRegistered(true);
+		_welcome(client.getFd(), client);
+	}
 }
 
 
@@ -247,7 +198,7 @@ void    Server::_join(int fd, const char *buf, Client &client)
 {
     int         operator_fd = fd;
     std::string temp;
-	int		    i = 5;
+	size_t	    i = 5;
 
     if (buf[i] == ':')
     {
@@ -282,6 +233,7 @@ void    Server::_join(int fd, const char *buf, Client &client)
 
 void	Server::_handleMessages(int cfd, char *buffer)
 {
+	ParseRequest					parser;
 	std::string						request;
 	std::vector<std::string>		tokens;
 	std::vector<Client>::iterator	client = findClient(cfd);
@@ -294,45 +246,43 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		std::memset(buffer, 0x0, 512);
 	}
 
-	_parser.parseLine(request);
-	tokens = _parser.getTokens();
+	parser.parseLine(request);
+	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
-        std::cout << tokens[i] << std::endl;
-		if (tokens[i].find("PASS") != std::string::npos)
-		{
-			if (_pass(tokens[i].c_str()) == false)
-			{
-				close(cfd);
-				break ;
-			}
-			else
-				(*client).setAuthorized(true);
-		}
 		if (tokens[i].find("CAP LS") != std::string::npos)
 			_capLs(cfd);
-		if (tokens[i].find("NICK") != std::string::npos)
+		if (tokens[i].find("PASS") != std::string::npos)
 		{
-			if ((*client).getAuthorized() == false)
+			if (!_pass(tokens[i].c_str()))
+				send(cfd, ":ircserv 464 * :Password incorrect\r\n", 39, 0);
+			else
 			{
-				close(cfd);
-				break ;
+				client->setPassOk(true);
+				_tryRegister(*client);
 			}
+		}
+		else if (tokens[i].find("NICK") != std::string::npos)
+		{
 			_addNick(tokens[i].c_str(), *client);
+			client->setNickOk(true);
+			_tryRegister(*client);
 		}
 		else if (tokens[i].find("USER") != std::string::npos)
 		{
-			if ((*client).getAuthorized() == false)
-			{
-				close(cfd);
-				break ;
-			}
-			_addUser(tokens[i].c_str(), *client); 
-			_welcome(cfd, *client);
-			//_motd(cfd, client);
+			_addUser(tokens[i].c_str(), *client);
+			client->setUserOk(true);
+			_tryRegister(*client);
 		}
 		else  if (tokens[i].find("MODE") != std::string::npos)
+		{
+			if (!client->isRegistered())
+			{
+				send(cfd, ":ircserv 451 * :You have not registered\r\n", 43, 0);
+				continue ;
+			}
 			_mode(tokens[i].c_str(), cfd);
+		}
 		else if (tokens[i].find("PING") != std::string::npos)
 			_pong(cfd);
         else if (tokens[i].find("JOIN") != std::string::npos)

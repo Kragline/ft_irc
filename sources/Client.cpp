@@ -1,10 +1,16 @@
 #include "Client.hpp"
 
-Client::Client() : _fd(-1), _authorized(false) {}
+Client::Client() : _fd(-1), _nickOk(false), _userOk(false), _passOk(false), _registered(false) {}
 
-Client::Client(int fd) : _fd(fd), _authorized(false) {}
+Client::Client(int fd) : _fd(fd), _nickOk(false), _userOk(false), _passOk(false), _registered(false) {}
 
-Client::Client(const Client &other) : _fd(other._fd), _authorized(other._authorized), _nick(other._nick), _user(other._user), _hostname(other._hostname), _servername(other._servername), _realName(other._realName) {}
+Client::Client(const Client &other) :
+	_fd(other._fd), _nickOk(other._nickOk),
+	_userOk(other._userOk), _passOk(other._passOk),
+	_registered(other._registered), 
+	_nick(other._nick), _user(other._user),
+	_hostname(other._hostname), _servername(other._servername),
+	_realName(other._realName) {}
 
 Client	&Client::operator=(const Client &other)
 {
@@ -12,7 +18,10 @@ Client	&Client::operator=(const Client &other)
 		return (*this);
 	
 	_fd = other._fd;
-    _authorized = other._authorized;
+	_nickOk = other._nickOk;
+	_userOk = other._userOk;
+	_passOk = other._passOk;
+	_registered = other._registered;
 	_nick = other._nick;
     _user = other._user;
     _hostname = other._hostname;
@@ -27,8 +36,17 @@ Client::~Client() {}
 int		Client::getFd() const { return (_fd); }
 void	Client::setFd(int newFd) { _fd = newFd; }
 
-bool    Client::getAuthorized() const {return (_authorized); }
-void    Client::setAuthorized(bool newStatus) {_authorized = newStatus;}
+bool    Client::isRegistered() const {return (_registered); }
+void    Client::setRegistered(bool newStatus) { _registered = newStatus; }
+
+bool	Client::hasPass() const { return (_passOk); }
+void	Client::setPassOk(bool status) { _passOk = status; }
+
+bool	Client::hasNick() const { return (_nickOk); }
+void	Client::setNickOk(bool status) { _nickOk = status; }
+
+bool	Client::hasUser() const { return (_userOk); }
+void	Client::setUserOk(bool status) { _userOk = status; }
 
 const std::string	&Client::getNick() const { return (_nick); }
 void				Client::setNick(const std::string &newNick) { _nick = newNick; }
