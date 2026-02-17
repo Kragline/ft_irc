@@ -193,6 +193,13 @@ void	Server::_tryRegister(Client &client)
 	}
 }
 
+void	Server::_alreadyRegistered(int fd, Client &client)
+{
+	std::string msg = ":ircserv 462 " + (client.getNick().empty() ? "*" : client.getNick()) +
+		" :You may not reregister\r\n";
+
+	send(fd, msg.c_str(), msg.size(), 0);
+}
 
 void    Server::_join(int fd, const char *buf, Client &client)
 {
@@ -231,6 +238,28 @@ void    Server::_join(int fd, const char *buf, Client &client)
     (void)client;
 }
 
+std::string	Server::_getNick(const std::string &token)
+{
+    size_t	start = 5;
+	size_t	end = token.find("\r");
+
+	if (end == std::string::npos)
+		end = token.length();
+
+	return token.substr(start, end - start);
+}
+
+bool	Server::_nickExists(const std::string &nick, int excludeFd)
+{
+	for (size_t i = 0; i < _clients.size(); i++)
+	{
+		if (_clients[i].getFd() != excludeFd &&
+			_clients[i].getNick() == nick)
+			return (true);
+	}
+	return (false);
+}
+
 void	Server::_handleMessages(int cfd, char *buffer)
 {
 	ParseRequest					parser;
@@ -254,6 +283,12 @@ void	Server::_handleMessages(int cfd, char *buffer)
 			_capLs(cfd);
 		if (tokens[i].find("PASS") != std::string::npos)
 		{
+			if (client->isRegistered())
+			{
+				_alreadyRegistered(cfd, *client);
+				continue ;
+			}
+
 			if (!_pass(tokens[i].c_str()))
 				send(cfd, ":ircserv 464 * :Password incorrect\r\n", 39, 0);
 			else
@@ -264,12 +299,41 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		}
 		else if (tokens[i].find("NICK") != std::string::npos)
 		{
-			_addNick(tokens[i].c_str(), *client);
-			client->setNickOk(true);
-			_tryRegister(*client);
+			std::string newNick = _getNick(tokens[i]);
+
+			if (newNick.empty())
+			{
+				send(cfd,
+					":ircserv 431 * :No nickname given\r\n",
+					35, 0);
+				continue;
+			}
+
+			if (_nickExists(newNick, cfd))
+			{
+				std::string msg =
+					":ircserv 433 * " + newNick +
+					" :Nickname is already in use\r\n";
+
+				send(cfd, msg.c_str(), msg.size(), 0);
+				continue;
+			}
+
+			client->setNick(newNick);
+
+			if (!client->isRegistered())
+			{
+				client->setNickOk(true);
+				_tryRegister(*client);
+			}
 		}
 		else if (tokens[i].find("USER") != std::string::npos)
 		{
+			if (client->isRegistered())
+			{
+				_alreadyRegistered(cfd, *client);
+				continue ;
+			}
 			_addUser(tokens[i].c_str(), *client);
 			client->setUserOk(true);
 			_tryRegister(*client);
