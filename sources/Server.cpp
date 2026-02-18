@@ -193,12 +193,12 @@ void	Server::_tryRegister(Client &client)
 	}
 }
 
-void	Server::_alreadyRegistered(int fd, Client &client)
+void	Server::_alreadyRegistered(const Client &client)
 {
 	std::string msg = ":ircserv 462 " + (client.getNick().empty() ? "*" : client.getNick()) +
 		" :You may not reregister\r\n";
 
-	send(fd, msg.c_str(), msg.size(), 0);
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
 }
 
 void    Server::_join(int fd, const char *buf, Client &client)
@@ -260,6 +260,74 @@ bool	Server::_nickExists(const std::string &nick, int excludeFd)
 	return (false);
 }
 
+void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick)
+{
+	std::string msg = ":" + oldNick + "!" + client.getUser() + "@" +
+						client.getHostname() + " NICK :" + newNick + "\r\n";
+
+	for (size_t i = 0; i < _clients.size(); i++)
+		send(_clients[i].getFd(), msg.c_str(), msg.size(), 0);
+}
+
+void	Server::_needMoreParams(const Client &client, const std::string &command)
+{
+	std::string nick = client.getNick().empty() ? "*" : client.getNick();
+
+	std::string msg = ":ircserv 461 " + nick + " " + command +
+						" :Not enough parameters\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
+bool	Server::_isValidNick(const std::string &nick)
+{
+	if (nick.empty() || nick.length() > 9)
+		return (false);
+
+	std::string	special = "[]\\`_^{|}";
+
+	if (!std::isalpha(nick[0]) && special.find(nick[0]) == std::string::npos)
+		return (false);
+
+	for (size_t i = 1; i < nick.length(); i++)
+	{
+		if (!std::isalnum(nick[i]) &&
+			special.find(nick[i]) == std::string::npos &&
+			nick[i] != '-')
+			return (false);
+	}
+	return (true);
+}
+
+void	Server::_erroneousNickname(const Client &client, const std::string &nick)
+{
+	std::string msg = ":ircserv 432 " + nick + " :Erroneous nickname\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.length(), 0);
+}
+
+void	Server::_nicknameInUse(const Client &client, const std::string &nick)
+{
+	std::string msg = ":ircserv 433 * " + nick + " :Nickname is already in use\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
+void	Server::_passwordMismatch(const Client &client)
+{
+	send(client.getFd(), ":ircserv 464 * :Password incorrect\r\n", 39, 0);
+}
+
+void	Server::_noNicknameGiven(const Client &client)
+{
+	send(client.getFd(), ":ircserv 431 * :No nickname given\r\n", 35, 0);
+}
+
+void	Server::_notRegistered(const Client &client)
+{
+	send(client.getFd(), ":ircserv 451 * :You have not registered\r\n", 43, 0);
+}
+
 void	Server::_handleMessages(int cfd, char *buffer)
 {
 	ParseRequest					parser;
@@ -285,12 +353,18 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		{
 			if (client->isRegistered())
 			{
-				_alreadyRegistered(cfd, *client);
+				_alreadyRegistered(*client);
+				continue ;
+			}
+
+			if (tokens[i].length() <= 5)
+			{
+				_needMoreParams(*client, "PASS");
 				continue ;
 			}
 
 			if (!_pass(tokens[i].c_str()))
-				send(cfd, ":ircserv 464 * :Password incorrect\r\n", 39, 0);
+				_passwordMismatch(*client);
 			else
 			{
 				client->setPassOk(true);
@@ -299,41 +373,66 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		}
 		else if (tokens[i].find("NICK") != std::string::npos)
 		{
-			std::string newNick = _getNick(tokens[i]);
+			if (tokens[i].length() <= 5)
+			{
+				_needMoreParams(*client, "NICK");
+				continue;
+			}
 
+			std::string newNick = _getNick(tokens[i]);
 			if (newNick.empty())
 			{
-				send(cfd,
-					":ircserv 431 * :No nickname given\r\n",
-					35, 0);
-				continue;
+				_noNicknameGiven(*client);
+				continue ;
 			}
 
+			if (!_isValidNick(newNick))
+			{
+				_erroneousNickname(*client, newNick);
+				continue ;
+			}
+
+			// is nickname is used, irc client will automatucally generate and send a new one
 			if (_nickExists(newNick, cfd))
 			{
-				std::string msg =
-					":ircserv 433 * " + newNick +
-					" :Nickname is already in use\r\n";
-
-				send(cfd, msg.c_str(), msg.size(), 0);
-				continue;
+				_nicknameInUse(*client, newNick);
+				continue ;
 			}
 
-			client->setNick(newNick);
+			std::string	oldNick = client->getNick();
+			if (oldNick == newNick)
+				continue ;
 
+			client->setNick(newNick);
 			if (!client->isRegistered())
 			{
 				client->setNickOk(true);
 				_tryRegister(*client);
+			}
+			else
+			{
+				_broadcastNickChange(*client, oldNick, newNick);
 			}
 		}
 		else if (tokens[i].find("USER") != std::string::npos)
 		{
 			if (client->isRegistered())
 			{
-				_alreadyRegistered(cfd, *client);
+				_alreadyRegistered(*client);
 				continue ;
 			}
+
+			std::istringstream	iss(tokens[i]);
+			std::string			cmd, user, host, server, real;
+
+			iss >> cmd >> user >> host >> server;
+
+			if (!(iss >> real))
+			{
+				_needMoreParams(*client, "USER");
+				continue;
+			}
+
 			_addUser(tokens[i].c_str(), *client);
 			client->setUserOk(true);
 			_tryRegister(*client);
@@ -342,7 +441,7 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		{
 			if (!client->isRegistered())
 			{
-				send(cfd, ":ircserv 451 * :You have not registered\r\n", 43, 0);
+				_notRegistered(*client);
 				continue ;
 			}
 			_mode(tokens[i].c_str(), cfd);
@@ -350,12 +449,19 @@ void	Server::_handleMessages(int cfd, char *buffer)
 		else if (tokens[i].find("PING") != std::string::npos)
 			_pong(cfd);
         else if (tokens[i].find("JOIN") != std::string::npos)
+		{
+			if (tokens[i].length() <= 5)
+			{
+				_needMoreParams(*client, "JOIN");
+				continue;
+			}
             _join(cfd, tokens[i].c_str(), *client);
+		}
 	}
 
 	if (count == 0)
 	{
-		std::cout << "Client " << cfd << " clossed the connection" << std::endl;
+		std::cout << "Client " << client->getNick() << " (" << cfd << ") clossed the connection" << std::endl;
 		close(cfd);
 		_clients.erase(client);
 	}

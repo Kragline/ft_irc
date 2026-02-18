@@ -63,11 +63,22 @@ private:
 	void	_tryRegister(Client &client);
     void    _join(int fd, const char *buf, Client &client);
 
-	void	_alreadyRegistered(int fd, Client &client);
-	bool	_nickExists(const std::string &nick, int excludeFd);
 	std::string	_getNick(const std::string &token);
 
-private:
+	bool	_nickExists(const std::string &nick, int excludeFd);
+	bool	_isValidNick(const std::string &nick);
+	void	_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick);
+
+	// ERRORS
+	void	_alreadyRegistered(const Client &client);
+	void	_needMoreParams(const Client &client, const std::string &command);
+	void	_erroneousNickname(const Client &client, const std::string &nick);
+	void	_nicknameInUse(const Client &client, const std::string &nick);
+	void	_passwordMismatch(const Client &client);
+	void	_noNicknameGiven(const Client &client);
+	void	_notRegistered(const Client &client);
+
+
 	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
 	{
 	private:
