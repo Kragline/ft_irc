@@ -18,12 +18,15 @@
 /* --------------------*/
 
 #include "irc.hpp"
+#include "Channel.hpp"
 
 #define MAX_EVENTS 10
 
 // compliler needs this because of circular dependencies
 // if you dont like this approach just remove this header from irc.hpp and include it separately
 struct sockaddr_in;
+
+class Channel;
 
 class Server
 {
@@ -73,6 +76,11 @@ private:
 	void	_modeHandler(Client &client, const std::string &line);
 	void	_pingHandler(Client &client, const std::string &line);
 	void	_joinHandler(Client &client, const std::string &line);
+
+	// channels
+	Channel	*_findChannel(const std::string &name);
+	Channel	*_createChannel(const std::string &name, Client *creator);
+
 
 	// helpers
 	std::string	_getNick(const std::string &token);

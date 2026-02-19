@@ -106,10 +106,26 @@ int     Server::_setNonblocking(int fd)
 
     flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1)
-        return -1;
+        return (-1);
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
-        return -1;
-    return 1;
+        return (-1);
+    return (1);
+}
+
+Channel	*Server::_findChannel(const std::string &name)
+{
+	for (size_t i = 0; i < _channels.size(); i++)
+	{
+		if (_channels[i].getName() == name)
+			return (&_channels[i]);
+	}
+	return (NULL);
+}
+
+Channel	*Server::_createChannel(const std::string &name, Client *creator)
+{
+	_channels.push_back(Channel(name, creator));
+	return (&_channels.back());
 }
 
 void	Server::_addUser(const char *buf, Client &client)
@@ -400,39 +416,22 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 		_needMoreParams(client, "JOIN");
 		return ;
 	}
-	
-	int         operator_fd = client.getFd();
-    std::string temp;
-	size_t	    i = 5;
 
-    if (line[i] == ':')
-    {
-	    send(client.getFd(), JOIN_461, std::strlen(JOIN_461), 0);
-        return ;
-    }
-    if (line[i] != '#')
-        return ;
-    for (; line[i] != '\0'; i++)
-        temp.append(1, line[i]);
-    std::cout << temp << std::endl;
-    for (i = 0; i < _channels.size(); i++)
-    {
-        if (_channels[i].getName() == temp)
-        {
-            operator_fd = _channels[i].getOperator().getFd();
-            break ;
-        }
-    }
+	std::stringstream	iss(line);
+    std::string			command, channelName;
+    
+	iss >> command >> channelName;
+	Channel	*channel = _findChannel(channelName);
+	if (channel)
+		channel->addMember(&client);
+	else
+		channel = _createChannel(channelName, &client);
 
-    if (operator_fd == client.getFd())
-    {
-        Operator    op(operator_fd);
-        Channel     channel(&op);
+	std::string joinMsg = ":" + client.getNick() + "!" +
+		client.getUser() + "@" + client.getHostname() +
+		" JOIN :" + channelName + "\r\n";
 
-        channel.setName(temp);
-       _channels.push_back(channel);
-    }
-    //TODO   TOPIC
+    channel->broadcast(joinMsg);
 }
 
 void	Server::_dispatchCommand(Client &client, const std::string &line)

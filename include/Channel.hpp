@@ -1,25 +1,32 @@
 #pragma once
 
-#include "Operator.hpp"
+#include "irc.hpp"
 
 class Channel
 {
 private:
-	const Operator				*_operator;
-	std::vector<const Client *>	_members;
-    std::string                 _name;
+	std::string				_name;
+	Client					*_operator;
+	std::vector<Client *>	_members;
 
 public:
-	Channel(const Operator *op);
+	Channel(const std::string &name, Client *op);
 	Channel(const Channel &other);
 
 	Channel	&operator=(const Channel &other);
 
 	~Channel();
 
-	const Operator				&getOperator() const ;
-	std::vector<const Client *>	&getMembers();
+	Client					&getOperator() const ;
+	std::vector<Client *>	&getMembers();
 
-    std::string                 getName(void) const ;
-    void                        setName(std::string name);
+    std::string				getName(void) const ;
+    void					setName(const std::string &name);
+
+	void	addMember(Client *client);
+	void	removeMember(Client *client);
+	bool	isMember(Client *client) const ;
+	bool	isOperator(Client *client) const ;
+
+	void	broadcast(const std::string &message, Client *exclude = NULL);
 };
