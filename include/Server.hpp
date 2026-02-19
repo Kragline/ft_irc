@@ -8,6 +8,7 @@
 #include <sys/epoll.h>
 
 #include <algorithm>
+#include <map>
 
 /* --- NETWORK SHIT ---*/
 #include <sys/types.h>
@@ -36,6 +37,10 @@ private:
 
 	std::vector<Client>			_clients;
 	std::vector<Channel>		_channels;
+
+
+	typedef	void (Server::*CommandHandler)(Client &, const std::string &);
+	std::map<std::string, CommandHandler>	_commands;
 public:
 	Server(int port, const std::string &password);
 	Server(const Server &other);
@@ -50,26 +55,33 @@ private:
 	Server();
 	
 	void	_initServer();
+	void	_initCommands();
     int     _setNonblocking(int fd);
     void    _handleMessages(int cfd, char *buffer);
 
-    bool    _pass(const char *buf);
-	void	_addNick(const char *buf, Client &client);
 	void	_addUser(const char *buf, Client &client);
-    void    _mode(const char *buf, int fd);
-	void	_capLs(int fd);
-	void	_welcome(int fd, Client &client);
-	void    _pong(int fd);
+	void	_welcome(Client &client);
 	void	_tryRegister(Client &client);
-    void    _join(int fd, const char *buf, Client &client);
 
+	void	_dispatchCommand(Client &client, const std::string &line);
+
+	// command handlers
+	void	_capLSHandler(Client &client, const std::string &line);
+	void	_passHandler(Client &client, const std::string &line);
+	void	_nickHandler(Client &client, const std::string &line);
+	void	_userHandler(Client &client, const std::string &line);
+	void	_modeHandler(Client &client, const std::string &line);
+	void	_pingHandler(Client &client, const std::string &line);
+	void	_joinHandler(Client &client, const std::string &line);
+
+	// helpers
 	std::string	_getNick(const std::string &token);
 
 	bool	_nickExists(const std::string &nick, int excludeFd);
 	bool	_isValidNick(const std::string &nick);
 	void	_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick);
 
-	// ERRORS
+	// errors
 	void	_alreadyRegistered(const Client &client);
 	void	_needMoreParams(const Client &client, const std::string &command);
 	void	_erroneousNickname(const Client &client, const std::string &nick);
@@ -77,7 +89,6 @@ private:
 	void	_passwordMismatch(const Client &client);
 	void	_noNicknameGiven(const Client &client);
 	void	_notRegistered(const Client &client);
-
 
 	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
 	{
