@@ -30,7 +30,17 @@ Server	&Server::operator=(const Server &other)
 	return (*this);
 }
 
-Server::~Server() { if (_fd != -1) close(_fd); }
+Server::~Server()
+{
+	if (_fd != -1)
+		close(_fd);
+	
+	for (size_t i = 0; i < _channels.size(); i++)
+		delete _channels[i];
+	
+	for (size_t i = 0; i < _clients.size(); i++)
+		delete _clients[i];
+}
 
 void	Server::_initServer()
 {
@@ -116,16 +126,17 @@ Channel	*Server::_findChannel(const std::string &name)
 {
 	for (size_t i = 0; i < _channels.size(); i++)
 	{
-		if (_channels[i].getName() == name)
-			return (&_channels[i]);
+		if (_channels[i]->getName() == name)
+			return (_channels[i]);
 	}
 	return (NULL);
 }
 
 Channel	*Server::_createChannel(const std::string &name, Client *creator)
 {
-	_channels.push_back(Channel(name, creator));
-	return (&_channels.back());
+	Channel	*newChannel = new Channel(name, creator);
+	_channels.push_back(newChannel);
+	return (newChannel);
 }
 
 void	Server::_addUser(const char *buf, Client &client)
@@ -213,8 +224,8 @@ bool	Server::_nickExists(const std::string &nick, int excludeFd)
 {
 	for (size_t i = 0; i < _clients.size(); i++)
 	{
-		if (_clients[i].getFd() != excludeFd &&
-			_clients[i].getNick() == nick)
+		if (_clients[i]->getFd() != excludeFd &&
+			_clients[i]->getNick() == nick)
 			return (true);
 	}
 	return (false);
@@ -226,7 +237,7 @@ void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, co
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
 	for (size_t i = 0; i < _clients.size(); i++)
-		send(_clients[i].getFd(), msg.c_str(), msg.size(), 0);
+		send(_clients[i]->getFd(), msg.c_str(), msg.size(), 0);
 }
 
 void	Server::_needMoreParams(const Client &client, const std::string &command)
@@ -453,7 +464,7 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	ParseRequest					parser;
 	std::string						request;
 	std::vector<std::string>		tokens;
-	std::vector<Client>::iterator	client = findClient(cfd);
+	std::vector<Client *>::iterator	client = _findClient(cfd);
 	ssize_t							count;
 
 	std::memset(buffer, 0x0, 512);
@@ -466,11 +477,11 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	parser.parseLine(request);
 	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
-		_dispatchCommand(*client, tokens[i]);
+		_dispatchCommand(*(*client), tokens[i]);
 
 	if (count == 0)
 	{
-		std::cout << "Client " << (client->getNick().empty() ? "*" : client->getNick()) << " (" << cfd << ") clossed the connection" << std::endl;
+		std::cout << "Client " << ((*client)->getNick().empty() ? "*" : (*client)->getNick()) << " (" << cfd << ") clossed the connection" << std::endl;
 		close(cfd);
 		_clients.erase(client);
 	}
@@ -485,9 +496,9 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	}
 }
 
-std::vector<Client>::iterator	Server::findClient(int targetFd)
+std::vector<Client *>::iterator	Server::_findClient(int targetFd)
 {
-	std::vector<Client>::iterator it = std::find_if(
+	std::vector<Client *>::iterator it = std::find_if(
 		_clients.begin(),
 		_clients.end(),
 		FdComparator(targetFd)
@@ -504,7 +515,7 @@ void	Server::serverLoop()
 	struct epoll_event	event;
 	struct epoll_event	events[MAX_EVENTS];
 	socklen_t			clientSize = 0;
-	Client				temp_client;
+	Client				*newClient;
 
 	while (true)
 	{
@@ -544,8 +555,9 @@ void	Server::serverLoop()
 						close(cfd);
 						throw std::runtime_error("epoll_ctl");
 					}
-					temp_client.setFd(cfd);
-					_clients.push_back(temp_client);
+					newClient = new Client();
+					newClient->setFd(cfd);
+					_clients.push_back(newClient);
 				}
 			}
 			else        // Existing Client

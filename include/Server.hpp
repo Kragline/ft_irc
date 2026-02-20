@@ -38,8 +38,8 @@ private:
 
 	struct sockaddr_in			_clientInfo;
 
-	std::vector<Client>			_clients;
-	std::vector<Channel>		_channels;
+	std::vector<Client *>			_clients;
+	std::vector<Channel *>		_channels;
 
 
 	typedef	void (Server::*CommandHandler)(Client &, const std::string &);
@@ -52,7 +52,6 @@ public:
 	~Server();
 
 	void	serverLoop();
-	std::vector<Client>::iterator	findClient(int targetFd);
 private:
 
 	Server();
@@ -67,6 +66,8 @@ private:
 	void	_tryRegister(Client &client);
 
 	void	_dispatchCommand(Client &client, const std::string &line);
+
+	std::vector<Client *>::iterator	_findClient(int targetFd);
 
 	// command handlers
 	void	_capLSHandler(Client &client, const std::string &line);
@@ -104,6 +105,6 @@ private:
 		int	_targetFd;
 	public:
 		explicit	FdComparator(int targetFd) : _targetFd(targetFd) {}
-		bool		operator()(const Client &client) const { return (client.getFd() == _targetFd); }
+		bool		operator()(Client *client) const { return (client->getFd() == _targetFd); }
 	};
 };
