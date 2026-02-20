@@ -108,6 +108,7 @@ void	Server::_initCommands()
 	_commands["JOIN"] = &Server::_joinHandler;
 	_commands["PING"] = &Server::_pingHandler;
 	_commands["MODE"] = &Server::_modeHandler;
+	_commands["PRIVMSG"] = &Server::_privmsgHandler;
 }
 
 int     Server::_setNonblocking(int fd)
@@ -299,6 +300,13 @@ void	Server::_notRegistered(const Client &client)
 	send(client.getFd(), ":ircserv 451 * :You have not registered\r\n", 43, 0);
 }
 
+void	Server::_noSuchChannel(const Client &client, const std::string &name)
+{
+	std::string msg = ":ircserv 403 " + name + " :No such channel\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
 void	Server::_capLSHandler(Client &client, const std::string &line)
 {
 	(void)line;
@@ -443,6 +451,53 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 		" JOIN :" + channelName + "\r\n";
 
     channel->broadcast(joinMsg);
+}
+
+void	Server::_privmsgHandler(Client &client, const std::string &line)
+{
+	if (!client.isRegistered())
+	{
+		_notRegistered(client);
+		return ;
+	}
+
+	std::stringstream	iss(line);
+	std::string			command, target, message;
+
+	iss >> command >> target;
+
+	if (target.empty())
+	{
+		_needMoreParams(client, "PRIVMSG");
+		return ;
+	}
+
+	size_t	msgPos = line.find(" :");
+	if (msgPos == std::string::npos)
+	{
+		_needMoreParams(client, "PRIVMSG");
+		return ;
+	}
+
+	message = line.substr(msgPos + 2);
+	if (message.empty())
+		return ;
+
+	std::string	fullMsg = ":" + client.getNick() + "!" + client.getUser() +
+		"@" + client.getHostname() + " PRIVMSG " + target + " :" + message + "\r\n";
+
+	if (target[0] == '#')
+	{
+		Channel *channel = _findChannel(target);
+
+		if (!channel)
+		{
+			_noSuchChannel(client, target);
+			return ;
+		}
+
+		channel->broadcast(fullMsg, &client);
+	}
 }
 
 void	Server::_dispatchCommand(Client &client, const std::string &line)

@@ -77,6 +77,7 @@ private:
 	void	_modeHandler(Client &client, const std::string &line);
 	void	_pingHandler(Client &client, const std::string &line);
 	void	_joinHandler(Client &client, const std::string &line);
+	void	_privmsgHandler(Client &client, const std::string &line);
 
 	// channels
 	Channel	*_findChannel(const std::string &name);
@@ -98,6 +99,8 @@ private:
 	void	_passwordMismatch(const Client &client);
 	void	_noNicknameGiven(const Client &client);
 	void	_notRegistered(const Client &client);
+	void	_noSuchChannel(const Client &client, const std::string &name);
+
 
 	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
 	{
