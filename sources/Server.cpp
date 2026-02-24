@@ -109,6 +109,7 @@ void	Server::_initCommands()
 	_commands["PING"] = &Server::_pingHandler;
 	_commands["MODE"] = &Server::_modeHandler;
 	_commands["PRIVMSG"] = &Server::_privmsgHandler;
+	_commands["QUIT"] = &Server::_quitHandler;
 }
 
 int     Server::_setNonblocking(int fd)
@@ -500,6 +501,15 @@ void	Server::_privmsgHandler(Client &client, const std::string &line)
 	}
 }
 
+
+void	Server::_quitHandler(Client &client, const std::string &line)
+{
+    int fd = client.getFd();
+    close(fd);
+	_clients.erase(_findClient(fd));
+    (void)line;
+}
+
 void	Server::_dispatchCommand(Client &client, const std::string &line)
 {
 	std::stringstream	iss(line);
@@ -532,7 +542,10 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	parser.parseLine(request);
 	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
-		_dispatchCommand(*(*client), tokens[i]);
+    {
+        std::cout << tokens[i] << std::endl;
+        _dispatchCommand(*(*client), tokens[i]);
+    }
 
 	if (count == 0)
 	{

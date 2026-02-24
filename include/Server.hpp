@@ -78,6 +78,7 @@ private:
 	void	_pingHandler(Client &client, const std::string &line);
 	void	_joinHandler(Client &client, const std::string &line);
 	void	_privmsgHandler(Client &client, const std::string &line);
+	void	_quitHandler(Client &client, const std::string &line);
 
 	// channels
 	Channel	*_findChannel(const std::string &name);
