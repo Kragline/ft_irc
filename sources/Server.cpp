@@ -101,7 +101,7 @@ void	Server::_initServer()
 
 void	Server::_initCommands()
 {
-	_commands["CAP LS"] = &Server::_capLSHandler;
+	_commands["CAP"] = &Server::_capLSHandler;
 	_commands["PASS"] = &Server::_passHandler;
 	_commands["NICK"] = &Server::_nickHandler;
 	_commands["USER"] = &Server::_userHandler;
