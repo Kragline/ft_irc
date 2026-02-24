@@ -27,6 +27,7 @@ public:
 	void	removeMember(Client *client);
 	bool	isMember(Client *client) const ;
 	bool	isOperator(Client *client) const ;
+	bool	isEmpty() const ;
 
 	void	broadcast(const std::string &message, Client *exclude = NULL);
 };

@@ -54,6 +54,11 @@ bool	Channel::isMember(Client *client) const
 	return (false);
 }
 
+bool	Channel::isEmpty() const
+{
+	return (_members.empty());
+}
+
 bool	Channel::isOperator(Client *client) const
 {
 	return (client == _operator);

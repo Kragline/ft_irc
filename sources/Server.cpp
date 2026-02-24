@@ -501,13 +501,46 @@ void	Server::_privmsgHandler(Client &client, const std::string &line)
 	}
 }
 
-
-void	Server::_quitHandler(Client &client, const std::string &line)
+void Server::_quitHandler(Client &client, const std::string &line)
 {
-    int fd = client.getFd();
-    close(fd);
-	_clients.erase(_findClient(fd));
-    (void)line;
+	std::string	reason = "Client Quit";
+
+	size_t	pos = line.find(" :");
+	if (pos != std::string::npos)
+		reason = line.substr(pos + 2);
+
+	std::string	quitMsg = ":" + client.getNick() + "!" +
+		client.getUser() + "@" + client.getHostname() +
+		" QUIT :" + reason + "\r\n";
+
+	for (size_t i = 0; i < _channels.size(); )
+	{
+		Channel	*channel = _channels[i];
+
+		if (channel->isMember(&client))
+		{
+			channel->broadcast(quitMsg, &client);
+			channel->removeMember(&client);
+
+			if (channel->isEmpty())
+			{
+				delete channel;
+				_channels.erase(_channels.begin() + i);
+				continue ;
+			}
+		}
+		i++;
+	}
+
+	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client.getFd(), NULL);
+	close(client.getFd());
+
+	std::vector<Client*>::iterator it = _findClient(client.getFd());
+	if (it != _clients.end())
+	{
+		delete *it;
+		_clients.erase(it);
+	}
 }
 
 void	Server::_dispatchCommand(Client &client, const std::string &line)
