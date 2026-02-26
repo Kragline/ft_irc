@@ -1,18 +1,19 @@
 #include "Channel.hpp"
 
-Channel::Channel(const std::string &name, Client *op) : _name(name), _operator(op)
+Channel::Channel(const std::string &name, Client *op) : _name(name)
 {
 	_members.push_back(op);
+	_operators.push_back(op);
 }
 
-Channel::Channel(const Channel &other) : _name(other._name), _operator(other._operator), _members(other._members) {}
+Channel::Channel(const Channel &other) : _name(other._name), _operators(other._operators), _members(other._members) {}
 
 Channel	&Channel::operator=(const Channel &other)
 {
 	if (this == &other)
 		return (*this);
 	
-	_operator = other._operator;
+	_operators = other._operators;
 	_members = other._members;
 	
 	return (*this);
@@ -20,11 +21,16 @@ Channel	&Channel::operator=(const Channel &other)
 
 Channel::~Channel() {}
 
-Client					&Channel::getOperator() const { return (*_operator); }
+std::vector<Client *>	&Channel::getOperators() { return (_operators); }
 std::vector<Client *>	&Channel::getMembers() { return (_members); }
 
 std::string				Channel::getName() const { return (_name); }
 void					Channel::setName(const std::string &name) { _name = name; }
+
+std::vector<Client *>::iterator	Channel::_findMember(std::vector<Client *> &vec, Client * client)
+{
+	return (std::find(vec.begin(), vec.end(), client));
+}
 
 void	Channel::addMember(Client *client)
 {
@@ -34,24 +40,18 @@ void	Channel::addMember(Client *client)
 
 void	Channel::removeMember(Client *client)
 {
-	for (std::vector<Client *>::iterator it = _members.begin(); it != _members.end(); it++)
-	{
-		if (*it == client)
-		{
-			_members.erase(it);
-			return ;
-		}
-	}
+	std::vector<Client *>::iterator it = _findMember(_members, client);
+	if (it != _members.end())
+		_members.erase(it);
+
+	it = _findMember(_operators, client);
+	if (it != _operators.end())
+		_operators.erase(it);
 }
 
-bool	Channel::isMember(Client *client) const
+bool	Channel::isMember(Client *client)
 {
-	for (size_t i = 0; i < _members.size(); i++)
-	{
-		if (_members[i] == client)
-			return (true);
-	}
-	return (false);
+	return (_findMember(_members, client) != _members.end());
 }
 
 bool	Channel::isEmpty() const
@@ -59,9 +59,9 @@ bool	Channel::isEmpty() const
 	return (_members.empty());
 }
 
-bool	Channel::isOperator(Client *client) const
+bool	Channel::isOperator(Client *client)
 {
-	return (client == _operator);
+	return (_findMember(_operators, client) != _operators.end());
 }
 
 void Channel::broadcast(const std::string &msg, Client *exclude)

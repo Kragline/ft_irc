@@ -110,6 +110,7 @@ void	Server::_initCommands()
 	_commands["MODE"] = &Server::_modeHandler;
 	_commands["PRIVMSG"] = &Server::_privmsgHandler;
 	_commands["QUIT"] = &Server::_quitHandler;
+	_commands["KICK"] = &Server::_kickHandler;
 }
 
 int     Server::_setNonblocking(int fd)
@@ -301,9 +302,24 @@ void	Server::_notRegistered(const Client &client)
 	send(client.getFd(), ":ircserv 451 * :You have not registered\r\n", 43, 0);
 }
 
-void	Server::_noSuchChannel(const Client &client, const std::string &name)
+void	Server::_noSuchChannel(const Client &client, const std::string &channelName)
 {
-	std::string msg = ":ircserv 403 " + name + " :No such channel\r\n";
+	std::string msg = ":ircserv 403 " + channelName + " :No such channel\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
+void	Server::_chanOpPrivsNeeded(const Client &client, const std::string &channelName)
+{
+	std::string	msg = ":ircserv 482 " + client.getNick() + " " +
+		channelName + " :You're not channel operator\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
+void	Server::_notOnChannel(const Client &client, const std::string &channelName)
+{
+	std::string	msg = ":ircserv 442 " + channelName + " :You're not on that channel\r\n";
 
 	send(client.getFd(), msg.c_str(), msg.size(), 0);
 }
@@ -431,6 +447,9 @@ void	Server::_pingHandler(Client &client, const std::string &line)
 
 void	Server::_joinHandler(Client &client, const std::string &line)
 {
+	if (line == "JOIN :")
+		return ;
+	
 	if (line.length() <= 5)
 	{
 		_needMoreParams(client, "JOIN");
@@ -543,6 +562,55 @@ void Server::_quitHandler(Client &client, const std::string &line)
 	}
 }
 
+void Server::_kickHandler(Client &client, const std::string &line)
+{
+	std::stringstream	ss(line);
+	std::string			cmd, channelName, targetNick, reason;
+
+	ss >> cmd >> channelName >> targetNick;
+	if (channelName.empty() || targetNick.empty())
+	{
+		_needMoreParams(client, "KICK");
+		return ;
+	}
+	size_t	pos = line.find(" :");
+
+	reason = targetNick;
+	if (line[pos + 2] != '\0')
+		reason = line.substr(pos + 2);
+
+	Channel	*channel = _findChannel(channelName);
+	if (!channel)
+	{
+		_noSuchChannel(client, channelName);
+		return ;
+	}
+
+	if (!channel->isMember(&client))
+	{
+		_notOnChannel(client, channelName);
+		return ;
+	}
+
+	if (!channel->isOperator(&client))
+	{
+		_chanOpPrivsNeeded(client, channelName);
+		return ;
+	}
+
+	std::vector<Client *>::iterator	targetClient = _findClient(targetNick);
+	if (targetClient == _clients.end() || !channel->isMember(*targetClient))
+		return ;
+	
+	std::string kickMsg = ":" + client.getNick() + "!" +
+        client.getUser() + "@" + client.getHostname() +
+        " KICK " + channelName + " " + targetNick +
+        " :" + reason + "\r\n";
+
+	channel->broadcast(kickMsg);
+	channel->removeMember(*targetClient);
+}
+
 void	Server::_dispatchCommand(Client &client, const std::string &line)
 {
 	std::stringstream	iss(line);
@@ -599,13 +667,24 @@ void	Server::_handleMessages(int cfd, char *buffer)
 
 std::vector<Client *>::iterator	Server::_findClient(int targetFd)
 {
-	std::vector<Client *>::iterator it = std::find_if(
-		_clients.begin(),
-		_clients.end(),
-		FdComparator(targetFd)
-	);
+	for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
+	{
+		if ((*it)->getFd() == targetFd)
+			return (it);
+	}
+	
+	return (_clients.end());
+}
 
-	return (it);
+std::vector<Client *>::iterator	Server::_findClient(const std::string &targetNick)
+{
+	for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
+	{
+		if ((*it)->getNick() == targetNick)
+			return (it);
+	}
+	
+	return (_clients.end());
 }
 
 void	Server::serverLoop()

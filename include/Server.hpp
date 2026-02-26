@@ -68,6 +68,7 @@ private:
 	void	_dispatchCommand(Client &client, const std::string &line);
 
 	std::vector<Client *>::iterator	_findClient(int targetFd);
+	std::vector<Client *>::iterator	_findClient(const std::string &targetNick);
 
 	// command handlers
 	void	_capLSHandler(Client &client, const std::string &line);
@@ -79,6 +80,7 @@ private:
 	void	_joinHandler(Client &client, const std::string &line);
 	void	_privmsgHandler(Client &client, const std::string &line);
 	void	_quitHandler(Client &client, const std::string &line);
+	void	_kickHandler(Client &client, const std::string &line);
 
 	// channels
 	Channel	*_findChannel(const std::string &name);
@@ -100,15 +102,7 @@ private:
 	void	_passwordMismatch(const Client &client);
 	void	_noNicknameGiven(const Client &client);
 	void	_notRegistered(const Client &client);
-	void	_noSuchChannel(const Client &client, const std::string &name);
-
-
-	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
-	{
-	private:
-		int	_targetFd;
-	public:
-		explicit	FdComparator(int targetFd) : _targetFd(targetFd) {}
-		bool		operator()(Client *client) const { return (client->getFd() == _targetFd); }
-	};
+	void	_noSuchChannel(const Client &client, const std::string &nameName);
+	void	_chanOpPrivsNeeded(const Client &client, const std::string &channelName);
+	void	_notOnChannel(const Client &client, const std::string &channelName);	
 };
