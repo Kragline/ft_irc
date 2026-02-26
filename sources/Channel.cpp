@@ -38,6 +38,18 @@ void	Channel::addMember(Client *client)
 		_members.push_back(client);
 }
 
+void	Channel::addRandomOperator()
+{
+	for (size_t i = 0; i < _members.size(); i++)
+	{
+		if (!isOperator(_members[i]))
+		{
+			_operators.push_back(_members[i]);
+			return ;
+		}
+	}
+}
+
 void	Channel::removeMember(Client *client)
 {
 	std::vector<Client *>::iterator it = _findMember(_members, client);
@@ -63,6 +75,8 @@ bool	Channel::isOperator(Client *client)
 {
 	return (_findMember(_operators, client) != _operators.end());
 }
+
+size_t	Channel::operatorCount() const { return (_operators.size()); }
 
 void Channel::broadcast(const std::string &msg, Client *exclude)
 {

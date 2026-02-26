@@ -609,6 +609,16 @@ void Server::_kickHandler(Client &client, const std::string &line)
 
 	channel->broadcast(kickMsg);
 	channel->removeMember(*targetClient);
+
+	if (channel->isEmpty())
+	{
+		delete channel;
+		_channels.erase(std::remove(_channels.begin(), _channels.end(), channel));
+		return ;
+	}
+	
+	if (!channel->operatorCount())
+		channel->addRandomOperator();
 }
 
 void	Server::_dispatchCommand(Client &client, const std::string &line)
