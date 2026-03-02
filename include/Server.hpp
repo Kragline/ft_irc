@@ -81,6 +81,7 @@ private:
 	void	_privmsgHandler(Client &client, const std::string &line);
 	void	_quitHandler(Client &client, const std::string &line);
 	void	_kickHandler(Client &client, const std::string &line);
+	void	_inviteHandler(Client &client, const std::string &line);
 
 	// channels
 	Channel	*_findChannel(const std::string &name);
@@ -104,5 +105,8 @@ private:
 	void	_notRegistered(const Client &client);
 	void	_noSuchChannel(const Client &client, const std::string &nameName);
 	void	_chanOpPrivsNeeded(const Client &client, const std::string &channelName);
-	void	_notOnChannel(const Client &client, const std::string &channelName);	
+	void	_notOnChannel(const Client &client, const std::string &channelName);
+	void	_noSuchNick(const Client &client, const std::string &nick);
+	void	_userOnChannel(const Client &client, const std::string &nick, const std::string &channelName);
+	void	_inviteOnlyChan(const Client &client, const std::string &channelName);
 };

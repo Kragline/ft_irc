@@ -111,6 +111,7 @@ void	Server::_initCommands()
 	_commands["PRIVMSG"] = &Server::_privmsgHandler;
 	_commands["QUIT"] = &Server::_quitHandler;
 	_commands["KICK"] = &Server::_kickHandler;
+	_commands["INVITE"] = &Server::_inviteHandler;
 }
 
 int     Server::_setNonblocking(int fd)
@@ -324,6 +325,27 @@ void	Server::_notOnChannel(const Client &client, const std::string &channelName)
 	send(client.getFd(), msg.c_str(), msg.size(), 0);
 }
 
+void	Server::_noSuchNick(const Client &client, const std::string &nick)
+{
+	std::string msg = ":ircserv 401 " + nick + " :No such nick/channel\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
+void	Server::_userOnChannel(const Client &client, const std::string &nick, const std::string &channelName)
+{
+	std::string msg = ":ircserv 443 " + nick + " " + channelName + " :is already on channel\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
+void	Server::_inviteOnlyChan(const Client &client, const std::string &channelName)
+{
+	std::string msg = ":ircserv 473 " + client.getNick() + " " + channelName + " :Cannot join channel (+i)\r\n";
+
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+}
+
 void	Server::_capLSHandler(Client &client, const std::string &line)
 {
 	(void)line;
@@ -462,9 +484,22 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 	iss >> command >> channelName;
 	Channel	*channel = _findChannel(channelName);
 	if (channel)
+	{
+		if (channel->isMember(&client))
+			return ;
+			
+		if (channel->isInviteOnly() && !channel->isInvited(&client))
+		{
+			_inviteOnlyChan(client, channel->getName());
+			return ;
+		}
 		channel->addMember(&client);
+		channel->removeInvited(&client);
+	}
 	else
+	{
 		channel = _createChannel(channelName, &client);
+	}
 
 	std::string joinMsg = ":" + client.getNick() + "!" +
 		client.getUser() + "@" + client.getHostname() +
@@ -516,11 +551,17 @@ void	Server::_privmsgHandler(Client &client, const std::string &line)
 			return ;
 		}
 
+		if (!channel->isMember(&client))
+		{
+			_notOnChannel(client, target);
+			return ;
+		}
+
 		channel->broadcast(fullMsg, &client);
 	}
 }
 
-void Server::_quitHandler(Client &client, const std::string &line)
+void	Server::_quitHandler(Client &client, const std::string &line)
 {
 	std::string	reason = "Client Quit";
 
@@ -562,7 +603,7 @@ void Server::_quitHandler(Client &client, const std::string &line)
 	}
 }
 
-void Server::_kickHandler(Client &client, const std::string &line)
+void	Server::_kickHandler(Client &client, const std::string &line)
 {
 	std::stringstream	ss(line);
 	std::string			cmd, channelName, targetNick, reason;
@@ -619,6 +660,71 @@ void Server::_kickHandler(Client &client, const std::string &line)
 	
 	if (!channel->operatorCount())
 		channel->addRandomOperator();
+}
+
+void	Server::_inviteHandler(Client &client, const std::string &line)
+{
+	if (!client.isRegistered())
+	{
+		_notRegistered(client);
+		return ;
+	}
+
+	std::stringstream	ss(line);
+	std::string			cmd, targetNick, channelName;
+
+	ss >> cmd >> targetNick >> channelName;
+	if (targetNick.empty() || channelName.empty())
+	{
+		_needMoreParams(client, "INVITE");
+		return ;
+	}
+
+	Channel	*channel = _findChannel(channelName);
+	if (!channel)
+	{
+		_noSuchChannel(client, channelName);
+		return ;
+	}
+
+	if (!channel->isMember(&client))
+	{
+		_notOnChannel(client, channelName);
+		return ;
+	}
+
+	if (channel->isInviteOnly() && !channel->isOperator(&client))
+	{
+		_chanOpPrivsNeeded(client, channelName);
+		return ;
+	}
+
+	std::vector<Client *>::iterator	targetClient = _findClient(targetNick);
+	if (targetClient == _clients.end())
+	{
+		_noSuchNick(client, channelName);
+		return ;
+	}
+
+	if (channel->isMember((*targetClient)))
+	{
+		_userOnChannel(client, targetNick, channelName);
+		return ;
+	}
+
+	channel->addInvited(*targetClient);
+
+	// Send invite to target
+	std::string inviteMsg =	":" + client.getNick() + "!" +
+		client.getUser() + "@" + client.getHostname() +
+		" INVITE " + targetNick + " :" + channelName + "\r\n";
+
+	// Confirm to sender
+	std::string confirm = ":ircserv 341 " + client.getNick() +
+		" " + targetNick + " " + channelName + "\r\n";
+
+	send((*targetClient)->getFd(), inviteMsg.c_str(), inviteMsg.size(), 0);
+	send(client.getFd(), confirm.c_str(), confirm.size(), 0);
 }
 
 void	Server::_dispatchCommand(Client &client, const std::string &line)

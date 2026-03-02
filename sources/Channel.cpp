@@ -1,12 +1,12 @@
 #include "Channel.hpp"
 
-Channel::Channel(const std::string &name, Client *op) : _name(name)
+Channel::Channel(const std::string &name, Client *op) : _name(name), _inviteOnly(false)
 {
 	_members.push_back(op);
 	_operators.push_back(op);
 }
 
-Channel::Channel(const Channel &other) : _name(other._name), _operators(other._operators), _members(other._members) {}
+Channel::Channel(const Channel &other) : _name(other._name), _operators(other._operators), _members(other._members), _invited(other._invited), _inviteOnly(other._inviteOnly) {}
 
 Channel	&Channel::operator=(const Channel &other)
 {
@@ -15,6 +15,7 @@ Channel	&Channel::operator=(const Channel &other)
 	
 	_operators = other._operators;
 	_members = other._members;
+	_invited = other._invited;
 	
 	return (*this);
 }
@@ -23,9 +24,13 @@ Channel::~Channel() {}
 
 std::vector<Client *>	&Channel::getOperators() { return (_operators); }
 std::vector<Client *>	&Channel::getMembers() { return (_members); }
+std::vector<Client *>	&Channel::getInvited() { return (_invited); }
 
 std::string				Channel::getName() const { return (_name); }
 void					Channel::setName(const std::string &name) { _name = name; }
+
+bool					Channel::isInviteOnly() const { return (_inviteOnly == true); }
+void					Channel::setInviteOnly(bool status) { _inviteOnly = status; }
 
 std::vector<Client *>::iterator	Channel::_findMember(std::vector<Client *> &vec, Client * client)
 {
@@ -59,6 +64,8 @@ void	Channel::removeMember(Client *client)
 	it = _findMember(_operators, client);
 	if (it != _operators.end())
 		_operators.erase(it);
+
+	removeInvited(client);
 }
 
 bool	Channel::isMember(Client *client)
@@ -74,6 +81,24 @@ bool	Channel::isEmpty() const
 bool	Channel::isOperator(Client *client)
 {
 	return (_findMember(_operators, client) != _operators.end());
+}
+
+void	Channel::addInvited(Client *client)
+{
+	if (!isInvited(client))
+		_invited.push_back(client);
+}
+
+bool	Channel::isInvited(Client *client)
+{
+	return (_findMember(_invited, client) != _invited.end());
+}
+
+void	Channel::removeInvited(Client *client)
+{
+	std::vector<Client *>::iterator it = _findMember(_invited, client);
+	if (it != _invited.end())
+		_invited.erase(it);
 }
 
 size_t	Channel::operatorCount() const { return (_operators.size()); }
