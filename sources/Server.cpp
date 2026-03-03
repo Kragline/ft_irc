@@ -112,6 +112,7 @@ void	Server::_initCommands()
 	_commands["QUIT"] = &Server::_quitHandler;
 	_commands["KICK"] = &Server::_kickHandler;
 	_commands["INVITE"] = &Server::_inviteHandler;
+	_commands["TOPIC"] = &Server::_topicHandler;
 }
 
 int     Server::_setNonblocking(int fd)
@@ -625,6 +626,42 @@ void	Server::_inviteHandler(Client &client, const std::string &line)
 
 	(*targetClient)->sendMessage(inviteMsg);
 	client.sendMessage(confirm);
+}
+
+void	Server::_topicHandler(Client &client, const std::string &line)
+{
+	if (!client.isRegistered()) { Error::_notRegistered(client); return; }
+
+	std::stringstream	ss(line);
+	std::string			cmd, channelName;
+
+	ss >> cmd >> channelName;
+	if (channelName.empty()) { Error::_needMoreParams(client, "TOPIC");return; }
+
+	Channel	*channel = _findChannel(channelName);
+	if (!channel) { Error::_noSuchChannel(client, channelName); return; }
+
+	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return; }
+
+	size_t	pos = line.find(" :");
+	if (pos == std::string::npos)
+	{
+		if (channel->getTopic().empty())
+			client.sendMessage(":ircserv 331 " + client.getNick() + " " + channelName + " :No topic is set\r\n");
+		else
+			client.sendMessage(":ircserv 332 " + client.getNick() + " " + channelName + " :" + channel->getTopic() + "\r\n");
+		return ;
+	}
+
+	if (channel->isTopicRestricted() && !channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return; }
+
+	std::string	newTopic = line.substr(pos + 2);
+	channel->setTopic(newTopic);
+
+	std::string	topicMsg = ":" + client.getNick() + "!" + client.getUser() + "@" + client.getHostname() +
+							" TOPIC " + channelName + " :" + newTopic + "\r\n";
+
+	channel->broadcast(topicMsg);
 }
 
 void	Server::_dispatchCommand(Client &client, const std::string &line)

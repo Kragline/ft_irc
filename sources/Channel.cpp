@@ -8,7 +8,7 @@ Channel::Channel(const std::string &name, Client *op) : _name(name),
 	_operators.push_back(op);
 }
 
-Channel::Channel(const Channel &other) : _name(other._name),
+Channel::Channel(const Channel &other) : _name(other._name), _key(other._key), _topic(other._topic),
 	_operators(other._operators), _members(other._members),
 	_invited(other._invited), _inviteOnly(other._inviteOnly),
 	_topicRestricted(other._topicRestricted), _hasKey(other._hasKey),
@@ -25,6 +25,7 @@ Channel	&Channel::operator=(const Channel &other)
 	
 	_name = other._name;
 	_key = other._key;
+	_topic = other._topic;
 
 	_inviteOnly = other._inviteOnly;
 	_topicRestricted = other._topicRestricted;
@@ -51,10 +52,13 @@ void	Channel::setInviteOnly(bool status) { _inviteOnly = status; }
 bool	Channel::isTopicRestricted() const { return (_topicRestricted == true); }
 void	Channel::setTopicRestricted(bool status) { _topicRestricted = status; }
 
-void				Channel::setKey(const std::string &newKey) { _key = newKey; _hasKey = true; }
-void				Channel::removeKey() { _key.clear(); _hasKey = false; }
-bool				Channel::hasKey() const { return (_hasKey == true); }
-const std::string	&Channel::getKey() const { return (_key); }
+void		Channel::setKey(const std::string &newKey) { _key = newKey; _hasKey = true; }
+void		Channel::removeKey() { _key.clear(); _hasKey = false; }
+bool		Channel::hasKey() const { return (_hasKey == true); }
+std::string	Channel::getKey() const { return (_key); }
+
+void		Channel::setTopic(const std::string &newTopic) { _topic = newTopic; }
+std::string	Channel::getTopic() const { return (_topic); }
 
 void	Channel::setLimit(size_t newLimit) { _limit = newLimit; _hasLimit = true; }
 void	Channel::removeLimit() { _limit = std::numeric_limits<size_t>::max(); _hasLimit = false; }

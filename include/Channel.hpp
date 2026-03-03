@@ -11,6 +11,7 @@ class Channel
 private:
 	std::string				_name;
 	std::string				_key;
+	std::string				_topic;
 
 	std::vector<Client *>	_operators;
 	std::vector<Client *>	_members;
@@ -44,10 +45,13 @@ public:
 	bool		isTopicRestricted() const ;
 	void		setTopicRestricted(bool status);
 
-	void				setKey(const std::string &newKey);
-	void				removeKey();
-	bool				hasKey() const ;
-	const std::string	&getKey() const ;
+	void		setKey(const std::string &newKey);
+	void		removeKey();
+	bool		hasKey() const ;
+	std::string	getKey() const ;
+
+	void		setTopic(const std::string &newTopic);
+	std::string	getTopic() const;
 
 	void	setLimit(size_t newLimit);
 	void	removeLimit();

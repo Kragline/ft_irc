@@ -83,6 +83,7 @@ private:
 	void	_quitHandler(Client &client, const std::string &line);
 	void	_kickHandler(Client &client, const std::string &line);
 	void	_inviteHandler(Client &client, const std::string &line);
+	void	_topicHandler(Client &client, const std::string &line);
 
 	// channels
 	Channel	*_findChannel(const std::string &name);
