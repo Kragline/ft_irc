@@ -48,6 +48,11 @@ void	Client::setNickOk(bool status) { _nickOk = status; }
 bool	Client::hasUser() const { return (_userOk); }
 void	Client::setUserOk(bool status) { _userOk = status; }
 
+void	Client::sendMessage(const std::string &message) const 
+{
+	send(_fd, message.c_str(), message.size(), 0);
+}
+
 const std::string	&Client::getNick() const { return (_nick); }
 void				Client::setNick(const std::string &newNick) { _nick = newNick; }
 

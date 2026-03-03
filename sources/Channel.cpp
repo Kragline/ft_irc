@@ -106,10 +106,6 @@ size_t	Channel::operatorCount() const { return (_operators.size()); }
 void Channel::broadcast(const std::string &msg, Client *exclude)
 {
 	for (size_t i = 0; i < _members.size(); i++)
-	{
 		if (_members[i] != exclude)
-		{
-			send(_members[i]->getFd(), msg.c_str(), msg.size(), 0);
-		}
-	}
+			_members[i]->sendMessage(msg);
 }

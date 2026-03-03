@@ -3,6 +3,8 @@
 #include "irc.hpp"
 #include <algorithm>
 
+class Client;
+
 class Channel
 {
 private:

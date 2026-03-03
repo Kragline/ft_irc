@@ -27,6 +27,7 @@
 struct sockaddr_in;
 
 class Channel;
+class Error;
 
 class Server
 {
@@ -94,19 +95,4 @@ private:
 	bool	_nickExists(const std::string &nick, int excludeFd);
 	bool	_isValidNick(const std::string &nick);
 	void	_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick);
-
-	// errors
-	void	_alreadyRegistered(const Client &client);
-	void	_needMoreParams(const Client &client, const std::string &command);
-	void	_erroneousNickname(const Client &client, const std::string &nick);
-	void	_nicknameInUse(const Client &client, const std::string &nick);
-	void	_passwordMismatch(const Client &client);
-	void	_noNicknameGiven(const Client &client);
-	void	_notRegistered(const Client &client);
-	void	_noSuchChannel(const Client &client, const std::string &nameName);
-	void	_chanOpPrivsNeeded(const Client &client, const std::string &channelName);
-	void	_notOnChannel(const Client &client, const std::string &channelName);
-	void	_noSuchNick(const Client &client, const std::string &nick);
-	void	_userOnChannel(const Client &client, const std::string &nick, const std::string &channelName);
-	void	_inviteOnlyChan(const Client &client, const std::string &channelName);
 };

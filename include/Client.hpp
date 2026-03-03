@@ -8,6 +8,8 @@
 #include <cstring>
 #include <csignal>
 
+#include "irc.hpp"
+
 class Client
 {
 	int         _fd;
@@ -43,6 +45,8 @@ public:
 	void	setNickOk(bool status);
 	void	setUserOk(bool status);
 	void	setRegistered(bool status);
+
+	void	sendMessage(const std::string &message) const ;
 
 	const std::string	&getNick() const;
 	void				setNick(const std::string &newNick);
