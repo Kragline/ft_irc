@@ -2,7 +2,7 @@
 
 #include "Client.hpp"
 #include "ParseRequest.hpp"
-
+#include "Error.hpp"
 #include "Server.hpp"
 
 #include <sstream>

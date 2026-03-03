@@ -110,6 +110,9 @@ void	Server::_initCommands()
 	_commands["MODE"] = &Server::_modeHandler;
 	_commands["PRIVMSG"] = &Server::_privmsgHandler;
 	_commands["QUIT"] = &Server::_quitHandler;
+	_commands["KICK"] = &Server::_kickHandler;
+	_commands["INVITE"] = &Server::_inviteHandler;
+	_commands["TOPIC"] = &Server::_topicHandler;
 }
 
 int     Server::_setNonblocking(int fd)
@@ -185,10 +188,10 @@ void	Server::_welcome(Client &client)
 
 	std::string msg004 = ":ircserv 004 " + nick + " ircserv 1.0 o o\r\n";
 
-	send(client.getFd(), msg001.c_str(), msg001.size(), 0);
-	send(client.getFd(), msg002.c_str(), msg002.size(), 0);
-	send(client.getFd(), msg003.c_str(), msg003.size(), 0);
-	send(client.getFd(), msg004.c_str(), msg004.size(), 0);
+	client.sendMessage(msg001);
+	client.sendMessage(msg002);
+	client.sendMessage(msg003);
+	client.sendMessage(msg004);
 }
 
 void	Server::_tryRegister(Client &client)
@@ -201,14 +204,6 @@ void	Server::_tryRegister(Client &client)
 		client.setRegistered(true);
 		_welcome(client);
 	}
-}
-
-void	Server::_alreadyRegistered(const Client &client)
-{
-	std::string msg = ":ircserv 462 " + (client.getNick().empty() ? "*" : client.getNick()) +
-		" :You may not reregister\r\n";
-
-	send(client.getFd(), msg.c_str(), msg.size(), 0);
 }
 
 std::string	Server::_getNick(const std::string &token)
@@ -239,17 +234,7 @@ void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, co
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
 	for (size_t i = 0; i < _clients.size(); i++)
-		send(_clients[i]->getFd(), msg.c_str(), msg.size(), 0);
-}
-
-void	Server::_needMoreParams(const Client &client, const std::string &command)
-{
-	std::string nick = client.getNick().empty() ? "*" : client.getNick();
-
-	std::string msg = ":ircserv 461 " + nick + " " + command +
-						" :Not enough parameters\r\n";
-
-	send(client.getFd(), msg.c_str(), msg.size(), 0);
+		_clients[i]->sendMessage(msg);
 }
 
 bool	Server::_isValidNick(const std::string &nick)
@@ -272,70 +257,22 @@ bool	Server::_isValidNick(const std::string &nick)
 	return (true);
 }
 
-void	Server::_erroneousNickname(const Client &client, const std::string &nick)
-{
-	std::string msg = ":ircserv 432 " + nick + " :Erroneous nickname\r\n";
-
-	send(client.getFd(), msg.c_str(), msg.length(), 0);
-}
-
-void	Server::_nicknameInUse(const Client &client, const std::string &nick)
-{
-	std::string msg = ":ircserv 433 * " + nick + " :Nickname is already in use\r\n";
-
-	send(client.getFd(), msg.c_str(), msg.size(), 0);
-}
-
-void	Server::_passwordMismatch(const Client &client)
-{
-	send(client.getFd(), ":ircserv 464 * :Password incorrect\r\n", 39, 0);
-}
-
-void	Server::_noNicknameGiven(const Client &client)
-{
-	send(client.getFd(), ":ircserv 431 * :No nickname given\r\n", 35, 0);
-}
-
-void	Server::_notRegistered(const Client &client)
-{
-	send(client.getFd(), ":ircserv 451 * :You have not registered\r\n", 43, 0);
-}
-
-void	Server::_noSuchChannel(const Client &client, const std::string &name)
-{
-	std::string msg = ":ircserv 403 " + name + " :No such channel\r\n";
-
-	send(client.getFd(), msg.c_str(), msg.size(), 0);
-}
-
 void	Server::_capLSHandler(Client &client, const std::string &line)
 {
 	(void)line;
-	send(client.getFd(), CAP_LS, std::strlen(CAP_LS), 0);
+	client.sendMessage(CAP_LS);
 }
 
 void	Server::_passHandler(Client &client, const std::string &line)
 {
-	if (client.isRegistered())
-	{
-		_alreadyRegistered(client);
-		return ;
-	}
+	if (client.isRegistered()) { Error::_alreadyRegistered(client); return ; }
 
-	if (line.length() <= 5)
-	{
-		_needMoreParams(client, "PASS");
-		return ;
-	}
+	if (line.length() <= 5)	{ Error::_needMoreParams(client, "PASS"); return ; }
 
     std::string temp = line.substr(5);
     std::string parameter = temp.substr(0, temp.find("\r\n"));
 
-	if (parameter.empty() || parameter != _password)
-	{
-		_passwordMismatch(client);
-		return ;
-	}
+	if (parameter.empty() || parameter != _password) { Error::_passwordMismatch(client); return ; }
 
 	client.setPassOk(true);
 	_tryRegister(client);
@@ -343,31 +280,15 @@ void	Server::_passHandler(Client &client, const std::string &line)
 
 void	Server::_nickHandler(Client &client, const std::string &line)
 {
-	if (line.length() <= 5)
-	{
-		_needMoreParams(client, "NICK");
-		return ;
-	}
+	if (line.length() <= 5)	{ Error::_needMoreParams(client, "NICK"); return ; }
 
 	std::string newNick = _getNick(line);
-	if (newNick.empty())
-	{
-		_noNicknameGiven(client);
-		return ;
-	}
+	if (newNick.empty()) { Error::_noNicknameGiven(client);	return ; }
 
-	if (!_isValidNick(newNick))
-	{
-		_erroneousNickname(client, newNick);
-		return ;
-	}
+	if (!_isValidNick(newNick))	{ Error::_erroneousNickname(client, newNick); return ; }
 
 	// if nickname is used, irc client will automatucally generate and send a new one
-	if (_nickExists(newNick, client.getFd()))
-	{
-		_nicknameInUse(client, newNick);
-		return ;
-	}
+	if (_nickExists(newNick, client.getFd())) { Error::_nicknameInUse(client, newNick); return ; }
 
 	std::string	oldNick = client.getNick();
 	if (oldNick == newNick)
@@ -387,65 +308,163 @@ void	Server::_nickHandler(Client &client, const std::string &line)
 
 void	Server::_userHandler(Client &client, const std::string &line)
 {
-	if (client.isRegistered())
-	{
-		_alreadyRegistered(client);
-		return ;
-	}
+	if (client.isRegistered()) { Error::_alreadyRegistered(client); return ; }
 
-	std::istringstream	iss(line);
+	std::stringstream	ss(line);
 	std::string			cmd, user, host, server, real;
 
-	iss >> cmd >> user >> host >> server;
+	ss >> cmd >> user >> host >> server >> real;
 
-	if (!(iss >> real))
-	{
-		_needMoreParams(client, "USER");
-		return ;
-	}
+	if (user.empty() || host.empty() ||
+		server.empty() || real.empty())	{ Error::_needMoreParams(client, "USER"); return ; }
 
 	_addUser(line.c_str(), client);
 	client.setUserOk(true);
 	_tryRegister(client);
 }
 
+void Server::_applyChannelModes(Client &client, Channel *channel, const std::string &modes, std::stringstream &ss)
+{
+	bool		adding = true;
+	std::string	modeChanges;
+
+	if (modes.find_first_not_of("+-itkol") != std::string::npos)
+		return ;
+
+	for (size_t i = 0; i < modes.size(); i++)
+	{
+		char c = modes[i];
+
+		if (c == '+') { adding = true; modeChanges += c; }
+		else if (c == '-') { adding = false; modeChanges += c; }
+
+		else if (c == 'i')
+		{
+			channel->setInviteOnly(adding);
+			modeChanges += 'i';
+		}
+		else if (c == 't')
+		{
+			channel->setTopicRestricted(adding);
+			modeChanges += 't';
+		}
+		else if (c == 'k')
+		{
+			std::string key;
+			ss >> key;
+
+			if (adding)
+			{
+				channel->setKey(key);
+				modeChanges += 'k';
+			}
+			else
+			{
+				channel->removeKey();
+				modeChanges += 'k';
+			}
+		}
+		else if (c == 'l')
+		{
+			if (adding)
+			{
+				size_t	limit;
+				ss >> limit;
+				if ((ss >> limit))
+					channel->setLimit(limit);
+			}
+			else
+				channel->removeLimit();
+
+			modeChanges += 'l';
+		}
+		else if (c == 'o')
+		{
+			std::string nick;
+			ss >> nick;
+
+			std::vector<Client*>::iterator it = _findClient(nick);
+			if (it != _clients.end())
+			{
+				if (adding)
+					channel->addOperator(*it);
+				else
+					channel->removeOperator(*it);
+			}
+
+			modeChanges += 'o';
+		}
+	}
+
+	std::string msg = ":" + client.getNick() + "!" +
+		client.getUser() + "@" + client.getHostname() +
+		" MODE " + channel->getName() + " " + modeChanges + "\r\n";
+
+	channel->broadcast(msg);
+}
+
 void	Server::_modeHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered())
+	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
+
+	std::stringstream	ss(line);
+	std::string			cmd, target, modes, param;
+
+	ss >> cmd >> target >> modes;
+	if (target.empty()) { Error::_needMoreParams(client, "MODE"); return ; }
+
+	if (target[0] != '#') { client.sendMessage(":ircserv 221 " + client.getNick() + " " + modes + "\r\n"); return ; }
+
+	Channel	*channel = _findChannel(target);
+	if (!channel) { Error::_noSuchChannel(client, target); return ; }
+
+	if (modes.empty())
 	{
-		_notRegistered(client);
+		std::string	currentModes = channel->getModeString();
+		std::string	reply = ":ircserv 324 " + client.getNick() + " " + target + " " + currentModes + "\r\n";
+		client.sendMessage(reply);
 		return ;
 	}
 
-	std::string temp = line.substr(5);
-    std::string parameter = temp.substr(0, temp.find("\r\n"));
+	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, target); return ; }
 
-    send(client.getFd(), std::string("221 " + temp + " " + parameter + "\r\n").c_str(), temp.length() + parameter.length() + 3, 0);
+	_applyChannelModes(client, channel, modes, ss);
 }
 
 void	Server::_pingHandler(Client &client, const std::string &line)
 {
 	(void)line;
-	send(client.getFd(), "PONG localhost\r\n", 16, 0);
+	client.sendMessage("PONG ircserv\r\n");
 }
 
 void	Server::_joinHandler(Client &client, const std::string &line)
 {
-	if (line.length() <= 5)
-	{
-		_needMoreParams(client, "JOIN");
+	if (line == "JOIN :")
 		return ;
-	}
+	
+	if (line.length() <= 5) { Error::_needMoreParams(client, "JOIN"); return ; }
 
-	std::stringstream	iss(line);
-    std::string			command, channelName;
+	std::stringstream	ss(line);
+    std::string			command, channelName, key;
     
-	iss >> command >> channelName;
+	ss >> command >> channelName >> key;
 	Channel	*channel = _findChannel(channelName);
 	if (channel)
+	{
+		if (channel->isMember(&client))
+			return ;
+			
+		if (channel->hasKey() && key != channel->getKey() ){ Error::_badChanKey(client, channelName); return ; }
+
+		if (channel->isInviteOnly()	&& !channel->isInvited(&client)) { Error::_inviteOnlyChan(client, channelName); return ; }
+
 		channel->addMember(&client);
+		channel->removeInvited(&client);
+	}
 	else
+	{
 		channel = _createChannel(channelName, &client);
+	}
 
 	std::string joinMsg = ":" + client.getNick() + "!" +
 		client.getUser() + "@" + client.getHostname() +
@@ -456,29 +475,17 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 
 void	Server::_privmsgHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered())
-	{
-		_notRegistered(client);
-		return ;
-	}
+	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
 
-	std::stringstream	iss(line);
+	std::stringstream	ss(line);
 	std::string			command, target, message;
 
-	iss >> command >> target;
+	ss >> command >> target;
 
-	if (target.empty())
-	{
-		_needMoreParams(client, "PRIVMSG");
-		return ;
-	}
+	if (target.empty()) { Error::_needMoreParams(client, "PRIVMSG"); return ; }
 
 	size_t	msgPos = line.find(" :");
-	if (msgPos == std::string::npos)
-	{
-		_needMoreParams(client, "PRIVMSG");
-		return ;
-	}
+	if (msgPos == std::string::npos) { Error::_needMoreParams(client, "PRIVMSG"); return ; }
 
 	message = line.substr(msgPos + 2);
 	if (message.empty())
@@ -491,17 +498,15 @@ void	Server::_privmsgHandler(Client &client, const std::string &line)
 	{
 		Channel *channel = _findChannel(target);
 
-		if (!channel)
-		{
-			_noSuchChannel(client, target);
-			return ;
-		}
+		if (!channel) { Error::_noSuchChannel(client, target); return ; }
+
+		if (!channel->isMember(&client)) { Error::_notOnChannel(client, target); return ; }
 
 		channel->broadcast(fullMsg, &client);
 	}
 }
 
-void Server::_quitHandler(Client &client, const std::string &line)
+void	Server::_quitHandler(Client &client, const std::string &line)
 {
 	std::string	reason = "Client Quit";
 
@@ -543,11 +548,127 @@ void Server::_quitHandler(Client &client, const std::string &line)
 	}
 }
 
+void	Server::_kickHandler(Client &client, const std::string &line)
+{
+	std::stringstream	ss(line);
+	std::string			cmd, channelName, targetNick, reason;
+
+	ss >> cmd >> channelName >> targetNick;
+	if (channelName.empty() || targetNick.empty()) { Error::_needMoreParams(client, "KICK");return ; }
+	size_t	pos = line.find(" :");
+
+	reason = targetNick;
+	if (line[pos + 2] != '\0')
+		reason = line.substr(pos + 2);
+
+	Channel	*channel = _findChannel(channelName);
+	if (!channel) { Error::_noSuchChannel(client, channelName);return ; }
+
+	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return ; }
+
+	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return ; }
+
+	std::vector<Client *>::iterator	targetClient = _findClient(targetNick);
+	if (targetClient == _clients.end() || !channel->isMember(*targetClient))
+		return ;
+	
+	std::string kickMsg = ":" + client.getNick() + "!" +
+        client.getUser() + "@" + client.getHostname() +
+        " KICK " + channelName + " " + targetNick +
+        " :" + reason + "\r\n";
+
+	channel->broadcast(kickMsg);
+	channel->removeMember(*targetClient);
+
+	if (channel->isEmpty())
+	{
+		delete channel;
+		_channels.erase(std::remove(_channels.begin(), _channels.end(), channel));
+		return ;
+	}
+	
+	if (!channel->operatorCount())
+		channel->addRandomOperator();
+}
+
+void	Server::_inviteHandler(Client &client, const std::string &line)
+{
+	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
+
+	std::stringstream	ss(line);
+	std::string			cmd, targetNick, channelName;
+
+	ss >> cmd >> targetNick >> channelName;
+	if (targetNick.empty() || channelName.empty()) { Error::_needMoreParams(client, "INVITE"); return ; }
+
+	Channel	*channel = _findChannel(channelName);
+	if (!channel) { Error::_noSuchChannel(client, channelName); return ; }
+
+	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return ; }
+
+	if (channel->isInviteOnly() && !channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return ; }
+
+	std::vector<Client *>::iterator	targetClient = _findClient(targetNick);
+	if (targetClient == _clients.end()) { Error::_noSuchNick(client, channelName); return ; }
+
+	if (channel->isMember((*targetClient))) { Error::_userOnChannel(client, targetNick, channelName); return ; }
+
+	channel->addInvited(*targetClient);
+
+	// Send invite to target
+	std::string	inviteMsg =	":" + client.getNick() + "!" +
+		client.getUser() + "@" + client.getHostname() +
+		" INVITE " + targetNick + " :" + channelName + "\r\n";
+
+	// Confirm to sender
+	std::string	confirm = ":ircserv 341 " + client.getNick() +
+		" " + targetNick + " " + channelName + "\r\n";
+
+	(*targetClient)->sendMessage(inviteMsg);
+	client.sendMessage(confirm);
+}
+
+void	Server::_topicHandler(Client &client, const std::string &line)
+{
+	if (!client.isRegistered()) { Error::_notRegistered(client); return; }
+
+	std::stringstream	ss(line);
+	std::string			cmd, channelName;
+
+	ss >> cmd >> channelName;
+	if (channelName.empty()) { Error::_needMoreParams(client, "TOPIC");return; }
+
+	Channel	*channel = _findChannel(channelName);
+	if (!channel) { Error::_noSuchChannel(client, channelName); return; }
+
+	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return; }
+
+	size_t	pos = line.find(" :");
+	if (pos == std::string::npos)
+	{
+		if (channel->getTopic().empty())
+			client.sendMessage(":ircserv 331 " + client.getNick() + " " + channelName + " :No topic is set\r\n");
+		else
+			client.sendMessage(":ircserv 332 " + client.getNick() + " " + channelName + " :" + channel->getTopic() + "\r\n");
+		return ;
+	}
+
+	if (channel->isTopicRestricted() && !channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return; }
+
+	std::string	newTopic = line.substr(pos + 2);
+	channel->setTopic(newTopic);
+
+	std::string	topicMsg = ":" + client.getNick() + "!" + client.getUser() + "@" + client.getHostname() +
+							" TOPIC " + channelName + " :" + newTopic + "\r\n";
+
+	channel->broadcast(topicMsg);
+}
+
 void	Server::_dispatchCommand(Client &client, const std::string &line)
 {
-	std::stringstream	iss(line);
+	std::stringstream	ss(line);
 	std::string			cmd;
-	iss >> cmd;
+	ss >> cmd;
 
 	std::map<std::string, CommandHandler>::iterator it = _commands.find(cmd);
 	if (it != _commands.end())
@@ -599,13 +720,24 @@ void	Server::_handleMessages(int cfd, char *buffer)
 
 std::vector<Client *>::iterator	Server::_findClient(int targetFd)
 {
-	std::vector<Client *>::iterator it = std::find_if(
-		_clients.begin(),
-		_clients.end(),
-		FdComparator(targetFd)
-	);
+	for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
+	{
+		if ((*it)->getFd() == targetFd)
+			return (it);
+	}
+	
+	return (_clients.end());
+}
 
-	return (it);
+std::vector<Client *>::iterator	Server::_findClient(const std::string &targetNick)
+{
+	for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
+	{
+		if ((*it)->getNick() == targetNick)
+			return (it);
+	}
+	
+	return (_clients.end());
 }
 
 void	Server::serverLoop()

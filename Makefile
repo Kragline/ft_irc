@@ -14,7 +14,7 @@ HEADER_DIR = include/
 SOURCES_DIR = sources/
 OBJECTS_DIR = objects/
 
-FILENAMES = main Client ParseRequest Server Channel
+FILENAMES = main Client ParseRequest Server Channel Error
 
 SOURCES = $(addsuffix .cpp, $(addprefix $(SOURCES_DIR), $(FILENAMES)))
 OBJECTS = $(addsuffix .o, $(addprefix $(OBJECTS_DIR), $(FILENAMES)))

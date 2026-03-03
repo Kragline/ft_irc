@@ -27,6 +27,7 @@
 struct sockaddr_in;
 
 class Channel;
+class Error;
 
 class Server
 {
@@ -68,6 +69,7 @@ private:
 	void	_dispatchCommand(Client &client, const std::string &line);
 
 	std::vector<Client *>::iterator	_findClient(int targetFd);
+	std::vector<Client *>::iterator	_findClient(const std::string &targetNick);
 
 	// command handlers
 	void	_capLSHandler(Client &client, const std::string &line);
@@ -79,6 +81,9 @@ private:
 	void	_joinHandler(Client &client, const std::string &line);
 	void	_privmsgHandler(Client &client, const std::string &line);
 	void	_quitHandler(Client &client, const std::string &line);
+	void	_kickHandler(Client &client, const std::string &line);
+	void	_inviteHandler(Client &client, const std::string &line);
+	void	_topicHandler(Client &client, const std::string &line);
 
 	// channels
 	Channel	*_findChannel(const std::string &name);
@@ -87,28 +92,9 @@ private:
 
 	// helpers
 	std::string	_getNick(const std::string &token);
+	void		_applyChannelModes(Client &client, Channel *channel, const std::string &modes, std::stringstream &ss);
 
 	bool	_nickExists(const std::string &nick, int excludeFd);
 	bool	_isValidNick(const std::string &nick);
 	void	_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick);
-
-	// errors
-	void	_alreadyRegistered(const Client &client);
-	void	_needMoreParams(const Client &client, const std::string &command);
-	void	_erroneousNickname(const Client &client, const std::string &nick);
-	void	_nicknameInUse(const Client &client, const std::string &nick);
-	void	_passwordMismatch(const Client &client);
-	void	_noNicknameGiven(const Client &client);
-	void	_notRegistered(const Client &client);
-	void	_noSuchChannel(const Client &client, const std::string &name);
-
-
-	class	FdComparator // Functor (class/object with overloaded "()" operator to compare the values) for std::find_if, there are no lambdas in CPP98to use
-	{
-	private:
-		int	_targetFd;
-	public:
-		explicit	FdComparator(int targetFd) : _targetFd(targetFd) {}
-		bool		operator()(Client *client) const { return (client->getFd() == _targetFd); }
-	};
 };
