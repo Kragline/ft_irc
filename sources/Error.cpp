@@ -93,3 +93,10 @@ void	Error::_inviteOnlyChan(const Client &client, const std::string &channelName
 
 	client.sendMessage(msg);
 }
+
+void	Error::_badChanKey(const Client &client, const std::string &channelName)
+{
+	std::string msg = ":ircserv 475 " + client.getNick() + " " + channelName + " :Cannot join channel (+i)\r\n";
+
+	client.sendMessage(msg);
+}

@@ -322,21 +322,118 @@ void	Server::_userHandler(Client &client, const std::string &line)
 	_tryRegister(client);
 }
 
+void Server::_applyChannelModes(Client &client, Channel *channel, const std::string &modes, std::stringstream &ss)
+{
+	bool		adding = true;
+	std::string	modeChanges;
+
+	if (modes.find_first_not_of("+-itkol") != std::string::npos)
+		return ;
+
+	for (size_t i = 0; i < modes.size(); i++)
+	{
+		char c = modes[i];
+
+		if (c == '+') { adding = true; modeChanges += c; }
+		else if (c == '-') { adding = false; modeChanges += c; }
+
+		else if (c == 'i')
+		{
+			channel->setInviteOnly(adding);
+			modeChanges += 'i';
+		}
+		else if (c == 't')
+		{
+			channel->setTopicRestricted(adding);
+			modeChanges += 't';
+		}
+		else if (c == 'k')
+		{
+			std::string key;
+			ss >> key;
+
+			if (adding)
+			{
+				channel->setKey(key);
+				modeChanges += 'k';
+			}
+			else
+			{
+				channel->removeKey();
+				modeChanges += 'k';
+			}
+		}
+		else if (c == 'l')
+		{
+			if (adding)
+			{
+				size_t	limit;
+				ss >> limit;
+				if ((ss >> limit))
+					channel->setLimit(limit);
+			}
+			else
+				channel->removeLimit();
+
+			modeChanges += 'l';
+		}
+		else if (c == 'o')
+		{
+			std::string nick;
+			ss >> nick;
+
+			std::vector<Client*>::iterator it = _findClient(nick);
+			if (it != _clients.end())
+			{
+				if (adding)
+					channel->addOperator(*it);
+				else
+					channel->removeOperator(*it);
+			}
+
+			modeChanges += 'o';
+		}
+	}
+
+	std::string msg = ":" + client.getNick() + "!" +
+		client.getUser() + "@" + client.getHostname() +
+		" MODE " + channel->getName() + " " + modeChanges + "\r\n";
+
+	channel->broadcast(msg);
+}
+
 void	Server::_modeHandler(Client &client, const std::string &line)
 {
 	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
 
-	std::string temp = line.substr(5);
-    std::string parameter = temp.substr(0, temp.find("\r\n"));
-	std::string msg = "221 " + temp + " " + parameter + "\r\n";
+	std::stringstream	ss(line);
+	std::string			cmd, target, modes, param;
 
-    client.sendMessage(msg);
+	ss >> cmd >> target >> modes;
+	if (target.empty()) { Error::_needMoreParams(client, "MODE"); return ; }
+
+	if (target[0] != '#') { client.sendMessage(":ircserv 221 " + client.getNick() + " " + modes + "\r\n"); return ; }
+
+	Channel	*channel = _findChannel(target);
+	if (!channel) { Error::_noSuchChannel(client, target); return ; }
+
+	if (modes.empty())
+	{
+		std::string	currentModes = channel->getModeString();
+		std::string	reply = ":ircserv 324 " + client.getNick() + " " + target + " " + currentModes + "\r\n";
+		client.sendMessage(reply);
+		return ;
+	}
+
+	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, target); return ; }
+
+	_applyChannelModes(client, channel, modes, ss);
 }
 
 void	Server::_pingHandler(Client &client, const std::string &line)
 {
 	(void)line;
-	client.sendMessage("PONG localhost\r\n");
+	client.sendMessage("PONG ircserv\r\n");
 }
 
 void	Server::_joinHandler(Client &client, const std::string &line)
@@ -347,16 +444,18 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 	if (line.length() <= 5) { Error::_needMoreParams(client, "JOIN"); return ; }
 
 	std::stringstream	ss(line);
-    std::string			command, channelName;
+    std::string			command, channelName, key;
     
-	ss >> command >> channelName;
+	ss >> command >> channelName >> key;
 	Channel	*channel = _findChannel(channelName);
 	if (channel)
 	{
 		if (channel->isMember(&client))
 			return ;
 			
-		if (channel->isInviteOnly()	&& !channel->isInvited(&client)) { Error::_inviteOnlyChan(client, channel->getName()); return ; }
+		if (channel->hasKey() && key != channel->getKey() ){ Error::_badChanKey(client, channelName); return ; }
+
+		if (channel->isInviteOnly()	&& !channel->isInvited(&client)) { Error::_inviteOnlyChan(client, channelName); return ; }
 
 		channel->addMember(&client);
 		channel->removeInvited(&client);
