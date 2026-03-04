@@ -144,34 +144,6 @@ Channel	*Server::_createChannel(const std::string &name, Client *creator)
 	return (newChannel);
 }
 
-void	Server::_addUser(const char *buf, Client &client)
-{
-    std::string temp;
-	int		i = 5;
-    
-    for (; buf[i] != ' '; i++)
-        temp.append(1, buf[i]);
-    client.setUser(temp);
-    temp.clear();
-
-    i++;
-    for (; buf[i] != ' '; i++)
-        temp.append(1, buf[i]);
-    client.setHostname(temp);
-    temp.clear();
-
-    i++;
-    for (; buf[i] != ' '; i++)
-        temp.append(1, buf[i]);
-    client.setServername(temp);
-    temp.clear();
-
-    i += 2;
-    for (; buf[i] != '\0'; i++)
-		temp.append(1, buf[i]);
-	client.setRealName(temp);
-}
-
 void	Server::_welcome(Client &client)
 {
 	std::string nick = client.getNick();
@@ -214,7 +186,7 @@ std::string	Server::_getNick(const std::string &token)
 	if (end == std::string::npos)
 		end = token.length();
 
-	return token.substr(start, end - start);
+	return (token.substr(start, end - start));
 }
 
 bool	Server::_nickExists(const std::string &nick, int excludeFd)
@@ -230,7 +202,7 @@ bool	Server::_nickExists(const std::string &nick, int excludeFd)
 
 void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick)
 {
-	std::string msg = ":" + oldNick + "!" + client.getUser() + "@" +
+	std::string	msg = ":" + oldNick + "!" + client.getUser() + "@" +
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
 	for (size_t i = 0; i < _clients.size(); i++)
@@ -318,7 +290,11 @@ void	Server::_userHandler(Client &client, const std::string &line)
 	if (user.empty() || host.empty() ||
 		server.empty() || real.empty())	{ Error::_needMoreParams(client, "USER"); return ; }
 
-	_addUser(line.c_str(), client);
+    client.setUser(user);
+    client.setHostname(host);
+    client.setServername(server);
+	client.setRealName(real);
+
 	client.setUserOk(true);
 	_tryRegister(client);
 }
@@ -350,7 +326,7 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 		}
 		else if (c == 'k')
 		{
-			std::string key;
+			std::string	key;
 			ss >> key;
 
 			if (adding)
@@ -380,10 +356,10 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 		}
 		else if (c == 'o')
 		{
-			std::string nick;
+			std::string	nick;
 			ss >> nick;
 
-			std::vector<Client*>::iterator it = _findClient(nick);
+			std::vector<Client *>::iterator	it = _findClient(nick);
 			if (it != _clients.end())
 			{
 				if (adding)
@@ -396,7 +372,7 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 		}
 	}
 
-	std::string msg = ":" + client.getNick() + "!" +
+	std::string	msg = ":" + client.getNick() + "!" +
 		client.getUser() + "@" + client.getHostname() +
 		" MODE " + channel->getName() + " " + modeChanges + "\r\n";
 
@@ -413,18 +389,12 @@ void	Server::_modeHandler(Client &client, const std::string &line)
 	ss >> cmd >> target >> modes;
 	if (target.empty()) { Error::_needMoreParams(client, "MODE"); return ; }
 
-	if (target[0] != '#') { client.sendMessage(":ircserv 221 " + client.getNick() + " " + modes + "\r\n"); return ; }
+	if (target[0] != '#') { Reply::_uModeIs(client, modes); return ; }
 
 	Channel	*channel = _findChannel(target);
 	if (!channel) { Error::_noSuchChannel(client, target); return ; }
 
-	if (modes.empty())
-	{
-		std::string	currentModes = channel->getModeString();
-		std::string	reply = ":ircserv 324 " + client.getNick() + " " + target + " " + currentModes + "\r\n";
-		client.sendMessage(reply);
-		return ;
-	}
+	if (modes.empty()) { Reply::_channelModeIs(client, target, channel->getModeString()); return ; }
 
 	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, target); return ; }
 
@@ -466,7 +436,7 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 		channel = _createChannel(channelName, &client);
 	}
 
-	std::string joinMsg = ":" + client.getNick() + "!" +
+	std::string	joinMsg = ":" + client.getNick() + "!" +
 		client.getUser() + "@" + client.getHostname() +
 		" JOIN :" + channelName + "\r\n";
 
@@ -496,7 +466,7 @@ void	Server::_privmsgHandler(Client &client, const std::string &line)
 
 	if (target[0] == '#')
 	{
-		Channel *channel = _findChannel(target);
+		Channel	*channel = _findChannel(target);
 
 		if (!channel) { Error::_noSuchChannel(client, target); return ; }
 
@@ -554,7 +524,7 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 	std::string			cmd, channelName, targetNick, reason;
 
 	ss >> cmd >> channelName >> targetNick;
-	if (channelName.empty() || targetNick.empty()) { Error::_needMoreParams(client, "KICK");return ; }
+	if (channelName.empty() || targetNick.empty()) { Error::_needMoreParams(client, "KICK"); return ; }
 	size_t	pos = line.find(" :");
 
 	reason = targetNick;
@@ -562,7 +532,7 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 		reason = line.substr(pos + 2);
 
 	Channel	*channel = _findChannel(channelName);
-	if (!channel) { Error::_noSuchChannel(client, channelName);return ; }
+	if (!channel) { Error::_noSuchChannel(client, channelName); return ; }
 
 	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return ; }
 
@@ -620,12 +590,8 @@ void	Server::_inviteHandler(Client &client, const std::string &line)
 		client.getUser() + "@" + client.getHostname() +
 		" INVITE " + targetNick + " :" + channelName + "\r\n";
 
-	// Confirm to sender
-	std::string	confirm = ":ircserv 341 " + client.getNick() +
-		" " + targetNick + " " + channelName + "\r\n";
-
 	(*targetClient)->sendMessage(inviteMsg);
-	client.sendMessage(confirm);
+	Reply::_inviting(client, targetNick, channelName);
 }
 
 void	Server::_topicHandler(Client &client, const std::string &line)
@@ -636,7 +602,7 @@ void	Server::_topicHandler(Client &client, const std::string &line)
 	std::string			cmd, channelName;
 
 	ss >> cmd >> channelName;
-	if (channelName.empty()) { Error::_needMoreParams(client, "TOPIC");return; }
+	if (channelName.empty()) { Error::_needMoreParams(client, "TOPIC"); return; }
 
 	Channel	*channel = _findChannel(channelName);
 	if (!channel) { Error::_noSuchChannel(client, channelName); return; }
@@ -647,9 +613,9 @@ void	Server::_topicHandler(Client &client, const std::string &line)
 	if (pos == std::string::npos)
 	{
 		if (channel->getTopic().empty())
-			client.sendMessage(":ircserv 331 " + client.getNick() + " " + channelName + " :No topic is set\r\n");
+			Reply::_noTopic(client, channel);
 		else
-			client.sendMessage(":ircserv 332 " + client.getNick() + " " + channelName + " :" + channel->getTopic() + "\r\n");
+			Reply::_topic(client, channel);
 		return ;
 	}
 
@@ -696,10 +662,10 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	parser.parseLine(request);
 	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
-    {
-        std::cout << tokens[i] << std::endl;
-        _dispatchCommand(*(*client), tokens[i]);
-    }
+	{
+		std::cout << tokens[i] << std::endl;
+		_dispatchCommand(*(*client), tokens[i]);
+	}
 
 	if (count == 0)
 	{

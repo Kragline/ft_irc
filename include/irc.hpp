@@ -4,6 +4,7 @@
 #include "ParseRequest.hpp"
 #include "Error.hpp"
 #include "Server.hpp"
+#include "Reply.hpp"
 
 #include <sstream>
 
