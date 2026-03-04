@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include <sys/socket.h>
 
 Client::Client() : _fd(-1), _nickOk(false), _userOk(false), _passOk(false), _registered(false) {}
 

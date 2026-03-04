@@ -1,13 +1,15 @@
 #pragma once
 
-#include "Client.hpp"
+#include <string>
 
+class Client;
 class Channel;
 
 class Reply
 {
 private:
 	Reply();
+
 public:
 	~Reply();
 

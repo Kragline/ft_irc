@@ -1,50 +1,43 @@
 #pragma once
 
 #include <stdexcept>
+#include <string>
+#include <vector>
+#include <map>
+#include <sstream>
+#include <iostream>
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/epoll.h>
 
-#include <algorithm>
-#include <map>
-
-/* --- NETWORK SHIT ---*/
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-/* --------------------*/
-
-#include "irc.hpp"
-#include "Channel.hpp"
 
 #define MAX_EVENTS 10
 
-// compliler needs this because of circular dependencies
-// if you dont like this approach just remove this header from irc.hpp and include it separately
-struct sockaddr_in;
-
+class Client;
 class Channel;
-class Error;
 
 class Server
 {
 private:
 	int							_fd;
-    int                         _epoll_fd;
+	int							_epoll_fd;
 	int							_port;
 	std::string					_password;
 
 	struct sockaddr_in			_clientInfo;
 
-	std::vector<Client *>			_clients;
+	std::vector<Client *>		_clients;
 	std::vector<Channel *>		_channels;
-
 
 	typedef	void (Server::*CommandHandler)(Client &, const std::string &);
 	std::map<std::string, CommandHandler>	_commands;
+
 public:
 	Server(int port, const std::string &password);
 	Server(const Server &other);
@@ -53,14 +46,14 @@ public:
 	~Server();
 
 	void	serverLoop();
-private:
 
-	Server();
-	
+private:
+    Server();
+
 	void	_initServer();
 	void	_initCommands();
-    int     _setNonblocking(int fd);
-    void    _handleMessages(int cfd, char *buffer);
+	int		_setNonblocking(int fd);
+	void	_handleMessages(int cfd, char *buffer);
 
 	void	_addUser(const char *buf, Client &client);
 	void	_welcome(Client &client);
@@ -88,7 +81,6 @@ private:
 	// channels
 	Channel	*_findChannel(const std::string &name);
 	Channel	*_createChannel(const std::string &name, Client *creator);
-
 
 	// helpers
 	std::string	_getNick(const std::string &token);

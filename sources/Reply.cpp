@@ -1,4 +1,6 @@
 #include "Reply.hpp"
+#include "Client.hpp"
+#include "Channel.hpp"
 
 Reply::Reply() {}
 

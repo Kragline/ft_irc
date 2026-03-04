@@ -8,7 +8,7 @@
 #include <cstring>
 #include <csignal>
 
-#include "irc.hpp"
+#include "IrcCommon.hpp"
 
 class Client
 {

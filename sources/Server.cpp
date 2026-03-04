@@ -1,5 +1,13 @@
 #include "Server.hpp"
 
+#include "Client.hpp"
+#include "Channel.hpp"
+#include "ParseRequest.hpp"
+#include "Error.hpp"
+#include "Reply.hpp"
+
+#include "IrcCommon.hpp" // only if Server.cpp uses CAP_LS / JOIN_451 / JOIN_461 / color macros
+
 Server::Server() : _fd(-1), _epoll_fd(-1), _port(5555), _password("bismillah")
 {
 	std::memset(&_clientInfo, 0, sizeof(_clientInfo));

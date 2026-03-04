@@ -1,4 +1,5 @@
 #include "Error.hpp"
+#include "Client.hpp"
 
 Error::Error() {}
 

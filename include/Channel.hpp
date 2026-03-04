@@ -1,8 +1,10 @@
 #pragma once
 
-#include "irc.hpp"
+#include <string>
+#include <vector>
 #include <algorithm>
 #include <limits>
+#include <cstddef>
 
 class Client;
 
@@ -36,10 +38,10 @@ public:
 	std::vector<Client *>	&getMembers();
 	std::vector<Client *>	&getInvited();
 
-    std::string	getName() const ;
+	std::string	getName() const ;
 	void		setName(const std::string &name);
 
-	bool		isInviteOnly() const ;
+	bool		isInviteOnly() const;
 	void		setInviteOnly(bool status);
 
 	bool		isTopicRestricted() const ;
@@ -51,7 +53,7 @@ public:
 	std::string	getKey() const ;
 
 	void		setTopic(const std::string &newTopic);
-	std::string	getTopic() const;
+	std::string	getTopic() const ;
 
 	void	setLimit(size_t newLimit);
 	void	removeLimit();
@@ -77,8 +79,9 @@ public:
 	size_t	memberCount() const ;
 
 	void	broadcast(const std::string &message, Client *exclude = NULL);
-	
+
 	std::string	getModeString() const ;
+
 private:
-	std::vector<Client *>::iterator	_findMember(std::vector<Client *> &vec, Client * client);
+    std::vector<Client *>::iterator	_findMember(std::vector<Client *> &vec, Client *client);
 };

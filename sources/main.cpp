@@ -1,4 +1,5 @@
-#include "irc.hpp"
+#include "Server.hpp"
+#include "IrcCommon.hpp"
 
 int	main(int argc, char **argv)
 {
