@@ -46,8 +46,11 @@ Server::~Server()
 	for (size_t i = 0; i < _channels.size(); i++)
 		delete _channels[i];
 	
-	for (size_t i = 0; i < _clients.size(); i++)
-		delete _clients[i];
+	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		delete it->second;
+
+	_clients.clear();
+	_clientsByNicks.clear();
 }
 
 void	Server::_initServer()
@@ -199,12 +202,11 @@ std::string	Server::_getNick(const std::string &token)
 
 bool	Server::_nickExists(const std::string &nick, int excludeFd)
 {
-	for (size_t i = 0; i < _clients.size(); i++)
-	{
-		if (_clients[i]->getFd() != excludeFd &&
-			_clients[i]->getNick() == nick)
-			return (true);
-	}
+	std::map<std::string, Client *>::iterator	it = _clientsByNicks.find(nick); 
+
+	if (it != _clientsByNicks.end() && it->second->getFd() != excludeFd)
+		return (true);
+
 	return (false);
 }
 
@@ -213,8 +215,8 @@ void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, co
 	std::string	msg = ":" + oldNick + "!" + client.getUser() + "@" +
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
-	for (size_t i = 0; i < _clients.size(); i++)
-		_clients[i]->sendMessage(msg);
+	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		it->second->sendMessage(msg);
 }
 
 bool	Server::_isValidNick(const std::string &nick)
@@ -273,6 +275,10 @@ void	Server::_nickHandler(Client &client, const std::string &line)
 	std::string	oldNick = client.getNick();
 	if (oldNick == newNick)
 		return ;
+
+	if (!oldNick.empty())
+		_clientsByNicks.erase(oldNick);
+	_clientsByNicks[newNick] = &client;
 
 	client.setNick(newNick);
 	if (!client.isRegistered())
@@ -366,13 +372,13 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 			std::string	nick;
 			ss >> nick;
 
-			std::vector<Client *>::iterator	it = _findClient(nick);
-			if (it != _clients.end())
+			Client	*it = _findClient(nick);
+			if (it)
 			{
 				if (adding)
-					channel->addOperator(*it);
+					channel->addOperator(it);
 				else
-					channel->removeOperator(*it);
+					channel->removeOperator(it);
 			}
 
 			modeChanges += 'o';
@@ -517,12 +523,10 @@ void	Server::_quitHandler(Client &client, const std::string &line)
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client.getFd(), NULL);
 	close(client.getFd());
 
-	std::vector<Client*>::iterator it = _findClient(client.getFd());
-	if (it != _clients.end())
-	{
-		delete *it;
-		_clients.erase(it);
-	}
+	_clients.erase(client.getFd());
+	if (!client.getNick().empty())
+		_clientsByNicks.erase(client.getNick());
+	delete &client;
 }
 
 void	Server::_kickHandler(Client &client, const std::string &line)
@@ -545,8 +549,8 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 
 	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return ; }
 
-	std::vector<Client *>::iterator	targetClient = _findClient(targetNick);
-	if (targetClient == _clients.end() || !channel->isMember(*targetClient))
+	Client	*targetClient = _findClient(targetNick);
+	if (!targetClient || !channel->isMember(targetClient))
 		return ;
 	
 	std::string kickMsg = ":" + client.getNick() + "!" +
@@ -555,7 +559,7 @@ void	Server::_kickHandler(Client &client, const std::string &line)
         " :" + reason + "\r\n";
 
 	channel->broadcast(kickMsg);
-	channel->removeMember(*targetClient);
+	channel->removeMember(targetClient);
 
 	if (channel->isEmpty())
 	{
@@ -585,19 +589,19 @@ void	Server::_inviteHandler(Client &client, const std::string &line)
 
 	if (channel->isInviteOnly() && !channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return ; }
 
-	std::vector<Client *>::iterator	targetClient = _findClient(targetNick);
-	if (targetClient == _clients.end()) { Error::_noSuchNick(client, channelName); return ; }
+	Client	*targetClient = _findClient(targetNick);
+	if (!targetClient) { Error::_noSuchNick(client, channelName); return ; }
 
-	if (channel->isMember((*targetClient))) { Error::_userOnChannel(client, targetNick, channelName); return ; }
+	if (channel->isMember(targetClient)) { Error::_userOnChannel(client, targetNick, channelName); return ; }
 
-	channel->addInvited(*targetClient);
+	channel->addInvited(targetClient);
 
 	// Send invite to target
 	std::string	inviteMsg =	":" + client.getNick() + "!" +
 		client.getUser() + "@" + client.getHostname() +
 		" INVITE " + targetNick + " :" + channelName + "\r\n";
 
-	(*targetClient)->sendMessage(inviteMsg);
+	targetClient->sendMessage(inviteMsg);
 	Reply::_inviting(client, targetNick, channelName);
 }
 
@@ -656,7 +660,7 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	ParseRequest					parser;
 	std::string						request;
 	std::vector<std::string>		tokens;
-	std::vector<Client *>::iterator	client = _findClient(cfd);
+	Client							*client = _findClient(cfd);
 	ssize_t							count;
 
 	std::memset(buffer, 0x0, 512);
@@ -671,46 +675,53 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
 		std::cout << tokens[i] << std::endl;
-		_dispatchCommand(*(*client), tokens[i]);
+		_dispatchCommand(*client, tokens[i]);
 	}
 
 	if (count == 0)
 	{
-		std::cout << "Client " << ((*client)->getNick().empty() ? "*" : (*client)->getNick()) << " (" << cfd << ") clossed the connection" << std::endl;
+		std::cout << "Client " << (client->getNick().empty() ? "*" : client->getNick()) << " (" << cfd << ") clossed the connection" << std::endl;
+
+		if (!client->getNick().empty())
+			_clientsByNicks.erase(client->getNick());
+
+		_clients.erase(cfd);
 		close(cfd);
-		_clients.erase(client);
+
+		delete client;
 	}
 	else if (count == -1)
 	{
 		if (errno != EAGAIN)
 		{
+			if (!client->getNick().empty())
+				_clientsByNicks.erase(client->getNick());
+
+			_clients.erase(cfd);
 			close(cfd);
-			_clients.erase(client);
+
+			delete client;
 			throw std::runtime_error("recv");
 		}
 	}
 }
 
-std::vector<Client *>::iterator	Server::_findClient(int targetFd)
+Client	*Server::_findClient(int targetFd)
 {
-	for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
-	{
-		if ((*it)->getFd() == targetFd)
-			return (it);
-	}
-	
-	return (_clients.end());
+	std::map<int, Client*>::iterator	it = _clients.find(targetFd);
+	if (it != _clients.end())
+		return (it->second);
+
+	return (NULL);
 }
 
-std::vector<Client *>::iterator	Server::_findClient(const std::string &targetNick)
+Client	*Server::_findClient(const std::string &targetNick)
 {
-	for (std::vector<Client *>::iterator it = _clients.begin(); it != _clients.end(); it++)
-	{
-		if ((*it)->getNick() == targetNick)
-			return (it);
-	}
-	
-	return (_clients.end());
+	std::map<std::string, Client*>::iterator	it = _clientsByNicks.find(targetNick);
+	if (it != _clientsByNicks.end())
+		return (it->second);
+
+	return (NULL);
 }
 
 void	Server::serverLoop()
@@ -761,9 +772,8 @@ void	Server::serverLoop()
 						close(cfd);
 						throw std::runtime_error("epoll_ctl");
 					}
-					newClient = new Client();
-					newClient->setFd(cfd);
-					_clients.push_back(newClient);
+					newClient = new Client(cfd);
+					_clients[cfd] = newClient;
 				}
 			}
 			else        // Existing Client
