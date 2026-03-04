@@ -30,7 +30,7 @@ Channel	&Channel::operator=(const Channel &other)
 
 	_inviteOnly = other._inviteOnly;
 	_topicRestricted = other._topicRestricted;
-	_hasKey = other._hasLimit;
+	_hasKey = other._hasKey;
 	_hasLimit = other._hasLimit;
 
 	_limit = other._limit;

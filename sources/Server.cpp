@@ -353,7 +353,6 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 			if (adding)
 			{
 				size_t	limit;
-				ss >> limit;
 				if ((ss >> limit))
 					channel->setLimit(limit);
 			}
@@ -533,10 +532,10 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 
 	ss >> cmd >> channelName >> targetNick;
 	if (channelName.empty() || targetNick.empty()) { Error::_needMoreParams(client, "KICK"); return ; }
+	
 	size_t	pos = line.find(" :");
-
 	reason = targetNick;
-	if (line[pos + 2] != '\0')
+	if (pos != std::string::npos && line[pos + 2] != '\0')
 		reason = line.substr(pos + 2);
 
 	Channel	*channel = _findChannel(channelName);

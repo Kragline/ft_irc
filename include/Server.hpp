@@ -55,7 +55,6 @@ private:
 	int		_setNonblocking(int fd);
 	void	_handleMessages(int cfd, char *buffer);
 
-	void	_addUser(const char *buf, Client &client);
 	void	_welcome(Client &client);
 	void	_tryRegister(Client &client);
 
