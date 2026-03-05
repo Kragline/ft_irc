@@ -11,7 +11,7 @@ Client::Client(const Client &other) :
 	_registered(other._registered), 
 	_nick(other._nick), _user(other._user),
 	_hostname(other._hostname), _servername(other._servername),
-	_realName(other._realName) {}
+	_realName(other._realName), _buffer(other._buffer) {}
 
 Client	&Client::operator=(const Client &other)
 {
@@ -28,6 +28,7 @@ Client	&Client::operator=(const Client &other)
     _hostname = other._hostname;
     _servername = other._servername;
 	_realName = other._realName;
+    _buffer = other._buffer;
 
 	return (*this);
 }
@@ -68,3 +69,7 @@ void				Client::setHostname(const std::string &newHostname) { _hostname = newHos
 
 const std::string	&Client::getServername() const { return (_servername); }
 void				Client::setServername(const std::string &newServername) { _servername = newServername; }
+
+const std::string   &Client::getBuffer() const { return (_buffer); }
+void                Client::addToBuffer(const std::string &newBuffer) { _buffer.append(newBuffer); }
+void                Client::cleanBuffer(void) { _buffer.clear(); }

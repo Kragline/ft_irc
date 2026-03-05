@@ -24,6 +24,8 @@ class Client
 	std::string _hostname;
 	std::string _servername;
 	std::string _realName;
+
+    std::string _buffer;
 public:
 	Client();
 	Client(int fd);
@@ -62,4 +64,8 @@ public:
 
 	const std::string	&getRealName() const;
 	void				setRealName(const std::string &newRealName);
+
+    const std::string   &getBuffer() const;
+    void                addToBuffer(const std::string &buffer);
+    void                cleanBuffer(void);
 };

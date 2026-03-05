@@ -663,14 +663,46 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	while ((count = recv(cfd, buffer, 512, 0)) > 0)
 	{
 		request += buffer;
+        std::cout << "Buffer: ";
+        for (int i = 0; buffer[i]; i++)
+        {
+            if (buffer[i] == '\r')
+                std::cout << "\\r";
+            else if (buffer[i] == '\n')
+                std::cout << "\\n";
+            else
+                std::cout << buffer[i];
+        }
+        std::cout << std::endl;
 		std::memset(buffer, 0x0, 512);
 	}
 
+    std::cout << "Full request: ";
+    for (int i = 0; request[i]; i++)
+    {
+        if (request[i] == '\r')
+            std::cout << "\\r";
+        else if (request[i] == '\n')
+            std::cout << "\\n";
+         else
+            std::cout << request[i];
+    }
+    std::cout << std::endl;
+    if (request.find("\r\n") == std::string::npos)
+    {
+        (*client)->addToBuffer(request);
+        return ;
+    }
+    else
+    {
+        (*client)->addToBuffer(request);
+        request = (*client)->getBuffer();
+    }
 	parser.parseLine(request);
 	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
-		std::cout << tokens[i] << std::endl;
+		std::cout << "Token: " << tokens[i] << std::endl;
 		_dispatchCommand(*(*client), tokens[i]);
 	}
 
