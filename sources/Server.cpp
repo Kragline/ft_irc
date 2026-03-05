@@ -45,9 +45,6 @@ Server::~Server()
 	
 	for (size_t i = 0; i < _channels.size(); i++)
 		delete _channels[i];
-	
-	for (std::map<int, Client *>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-		delete it->second;
 
 	_clients.clear();
 	_clientsByNicks.clear();
@@ -215,8 +212,8 @@ void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, co
 	std::string	msg = ":" + oldNick + "!" + client.getUser() + "@" +
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
-	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-		it->second->sendMessage(msg);
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		it->second.sendMessage(msg);
 }
 
 bool	Server::_isValidNick(const std::string &nick)
@@ -526,7 +523,6 @@ void	Server::_quitHandler(Client &client, const std::string &line)
 	_clients.erase(client.getFd());
 	if (!client.getNick().empty())
 		_clientsByNicks.erase(client.getNick());
-	delete &client;
 }
 
 void	Server::_kickHandler(Client &client, const std::string &line)
@@ -720,8 +716,6 @@ void	Server::_handleMessages(int cfd, char *buffer)
 
 		_clients.erase(cfd);
 		close(cfd);
-
-		delete client;
 	}
 	else if (count == -1)
 	{
@@ -732,8 +726,6 @@ void	Server::_handleMessages(int cfd, char *buffer)
 
 			_clients.erase(cfd);
 			close(cfd);
-
-			delete client;
 			throw std::runtime_error("recv");
 		}
 	}
@@ -741,9 +733,9 @@ void	Server::_handleMessages(int cfd, char *buffer)
 
 Client	*Server::_findClient(int targetFd)
 {
-	std::map<int, Client*>::iterator	it = _clients.find(targetFd);
+	std::map<int, Client>::iterator	it = _clients.find(targetFd);
 	if (it != _clients.end())
-		return (it->second);
+		return (&it->second);
 
 	return (NULL);
 }
@@ -765,7 +757,6 @@ void	Server::serverLoop()
 	struct epoll_event	event;
 	struct epoll_event	events[MAX_EVENTS];
 	socklen_t			clientSize = 0;
-	Client				*newClient;
 
 	while (true)
 	{
@@ -805,8 +796,7 @@ void	Server::serverLoop()
 						close(cfd);
 						throw std::runtime_error("epoll_ctl");
 					}
-					newClient = new Client(cfd);
-					_clients[cfd] = newClient;
+					_clients[cfd] = Client(cfd);
 				}
 			}
 			else        // Existing Client

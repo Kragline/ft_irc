@@ -32,7 +32,7 @@ private:
 
 	struct sockaddr_in			_clientInfo;
 
-	std::map<int, Client *>			_clients;
+	std::map<int, Client>			_clients;
 	std::map<std::string, Client *>	_clientsByNicks;
 
 	std::vector<Channel *>			_channels;
