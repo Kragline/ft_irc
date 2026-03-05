@@ -697,6 +697,7 @@ void	Server::_handleMessages(int cfd, char *buffer)
     {
         (*client)->addToBuffer(request);
         request = (*client)->getBuffer();
+        (*client)->cleanBuffer();
     }
 	parser.parseLine(request);
 	tokens = parser.getTokens();
