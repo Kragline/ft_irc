@@ -32,8 +32,10 @@ private:
 
 	struct sockaddr_in			_clientInfo;
 
-	std::vector<Client *>		_clients;
-	std::vector<Channel *>		_channels;
+	std::map<int, Client *>			_clients;
+	std::map<std::string, Client *>	_clientsByNicks;
+
+	std::vector<Channel *>			_channels;
 
 	typedef	void (Server::*CommandHandler)(Client &, const std::string &);
 	std::map<std::string, CommandHandler>	_commands;
@@ -60,8 +62,8 @@ private:
 
 	void	_dispatchCommand(Client &client, const std::string &line);
 
-	std::vector<Client *>::iterator	_findClient(int targetFd);
-	std::vector<Client *>::iterator	_findClient(const std::string &targetNick);
+	Client	*_findClient(int targetFd);
+	Client	*_findClient(const std::string &targetNick);
 
 	// command handlers
 	void	_capLSHandler(Client &client, const std::string &line);
