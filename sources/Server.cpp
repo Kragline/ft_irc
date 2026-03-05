@@ -42,9 +42,6 @@ Server::~Server()
 {
 	if (_fd != -1)
 		close(_fd);
-	
-	for (size_t i = 0; i < _channels.size(); i++)
-		delete _channels[i];
 
 	_clients.clear();
 	_clientsByNicks.clear();
@@ -137,19 +134,10 @@ int     Server::_setNonblocking(int fd)
 
 Channel	*Server::_findChannel(const std::string &name)
 {
-	for (size_t i = 0; i < _channels.size(); i++)
-	{
-		if (_channels[i]->getName() == name)
-			return (_channels[i]);
-	}
+	std::map<std::string, Channel>::iterator	it = _channels.find(name);
+	if (it != _channels.end())
+		return (&it->second);
 	return (NULL);
-}
-
-Channel	*Server::_createChannel(const std::string &name, Client *creator)
-{
-	Channel	*newChannel = new Channel(name, creator);
-	_channels.push_back(newChannel);
-	return (newChannel);
 }
 
 void	Server::_welcome(Client &client)
@@ -443,7 +431,10 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 	}
 	else
 	{
-		channel = _createChannel(channelName, &client);
+		std::pair<std::map<std::string, Channel>::iterator, bool> result =
+			_channels.insert(std::make_pair(channelName, Channel(channelName, &client)));
+
+		channel = &result.first->second;
 	}
 
 	std::string	joinMsg = ":" + client.getNick() + "!" +
@@ -498,23 +489,23 @@ void	Server::_quitHandler(Client &client, const std::string &line)
 		client.getUser() + "@" + client.getHostname() +
 		" QUIT :" + reason + "\r\n";
 
-	for (size_t i = 0; i < _channels.size(); )
+	std::map<std::string, Channel>::iterator	it = _channels.begin();
+	while (it != _channels.end())
 	{
-		Channel	*channel = _channels[i];
+		Channel	*channel = &it->second;
 
 		if (channel->isMember(&client))
 		{
 			channel->broadcast(quitMsg, &client);
 			channel->removeMember(&client);
-
+			
 			if (channel->isEmpty())
 			{
-				delete channel;
-				_channels.erase(_channels.begin() + i);
+				_channels.erase(it++);
 				continue ;
 			}
 		}
-		i++;
+		++it;
 	}
 
 	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client.getFd(), NULL);
@@ -559,8 +550,7 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 
 	if (channel->isEmpty())
 	{
-		delete channel;
-		_channels.erase(std::remove(_channels.begin(), _channels.end(), channel));
+		_channels.erase(channelName);
 		return ;
 	}
 	

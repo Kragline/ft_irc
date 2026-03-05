@@ -35,7 +35,7 @@ private:
 	std::map<int, Client>			_clients;
 	std::map<std::string, Client *>	_clientsByNicks;
 
-	std::vector<Channel *>			_channels;
+	std::map<std::string, Channel>	_channels;
 
 	typedef	void (Server::*CommandHandler)(Client &, const std::string &);
 	std::map<std::string, CommandHandler>	_commands;
