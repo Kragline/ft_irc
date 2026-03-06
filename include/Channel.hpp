@@ -16,9 +16,9 @@ private:
 	std::string	_key;
 	std::string	_topic;
 
-	std::map<std::string, Client *>	_operators;
-	std::map<std::string, Client *>	_members;
-	std::map<std::string, Client *>	_invited;
+	std::map<int, Client *>	_operators;
+	std::map<int, Client *>	_members;
+	std::map<int, Client *>	_invited;
 
 	bool	_inviteOnly;
 	bool	_topicRestricted;
@@ -35,9 +35,9 @@ public:
 
 	~Channel();
 
-	std::map<std::string, Client *>	&getOperators();
-	std::map<std::string, Client *>	&getMembers();
-	std::map<std::string, Client *>	&getInvited();
+	std::map<int, Client *>	&getOperators();
+	std::map<int, Client *>	&getMembers();
+	std::map<int, Client *>	&getInvited();
 
 	std::string	getName() const ;
 	void		setName(const std::string &name);

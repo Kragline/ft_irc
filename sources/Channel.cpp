@@ -40,9 +40,9 @@ Channel	&Channel::operator=(const Channel &other)
 
 Channel::~Channel() {}
 
-std::map<std::string, Client *>	&Channel::getOperators() { return (_operators); }
-std::map<std::string, Client *>	&Channel::getMembers() { return (_members); }
-std::map<std::string, Client *>	&Channel::getInvited() { return (_invited); }
+std::map<int, Client *>	&Channel::getOperators() { return (_operators); }
+std::map<int, Client *>	&Channel::getMembers() { return (_members); }
+std::map<int, Client *>	&Channel::getInvited() { return (_invited); }
 
 std::string	Channel::getName() const { return (_name); }
 void	Channel::setName(const std::string &name) { _name = name; }
@@ -69,16 +69,16 @@ size_t	Channel::getLimit() const { return (_limit); }
 void	Channel::addMember(Client *client)
 {
 	if (!isMember(client))
-		_members.insert(std::make_pair(client->getNick(), client));
+		_members.insert(std::make_pair(client->getFd(), client));
 }
 
 void	Channel::setNewOperator()
 {
-	for (std::map<std::string, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
+	for (std::map<int, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
 	{
 		if (!isOperator(it->second))
 		{
-			_operators.insert(std::make_pair(it->second->getNick(), it->second));
+			_operators.insert(std::make_pair(it->second->getFd(), it->second));
 			return ;
 		}
 	}
@@ -86,11 +86,11 @@ void	Channel::setNewOperator()
 
 void	Channel::removeMember(Client *client)
 {
-	std::map<std::string, Client *>::iterator	it = _members.find(client->getNick());
+	std::map<int, Client *>::iterator	it = _members.find(client->getFd());
 	if (it != _members.end())
 		_members.erase(it);
 
-	it = _operators.find(client->getNick());
+	it = _operators.find(client->getFd());
 	if (it != _operators.end())
 		_operators.erase(it);
 
@@ -99,7 +99,7 @@ void	Channel::removeMember(Client *client)
 
 bool	Channel::isMember(Client *client)
 {
-	return (_members.find(client->getNick()) != _members.end());
+	return (_members.find(client->getFd()) != _members.end());
 }
 
 bool	Channel::isEmpty() const
@@ -110,17 +110,17 @@ bool	Channel::isEmpty() const
 void	Channel::addInvited(Client *client)
 {
 	if (!isInvited(client))
-		_invited.insert(std::make_pair(client->getNick(), client));
+		_invited.insert(std::make_pair(client->getFd(), client));
 }
 
 bool	Channel::isInvited(Client *client)
 {
-	return (_invited.find(client->getNick()) != _invited.end());
+	return (_invited.find(client->getFd()) != _invited.end());
 }
 
 void	Channel::removeInvited(Client *client)
 {
-	std::map<std::string, Client *>::iterator	it = _invited.find(client->getNick());
+	std::map<int, Client *>::iterator	it = _invited.find(client->getFd());
 	if (it != _invited.end())
 		_invited.erase(it);
 }
@@ -128,17 +128,17 @@ void	Channel::removeInvited(Client *client)
 void	Channel::addOperator(Client *client)
 {
 	if (!isOperator(client))
-		_operators.insert(std::make_pair(client->getNick(), client));
+		_operators.insert(std::make_pair(client->getFd(), client));
 }
 
 bool	Channel::isOperator(Client *client)
 {
-	return (_operators.find(client->getNick()) != _operators.end());
+	return (_operators.find(client->getFd()) != _operators.end());
 }
 
 void	Channel::removeOperator(Client *client)
 {
-	std::map<std::string, Client *>::iterator	it = _operators.find(client->getNick());
+	std::map<int, Client *>::iterator	it = _operators.find(client->getFd());
 	if (it != _operators.end())
 		_operators.erase(it);
 }
@@ -149,7 +149,7 @@ size_t	Channel::memberCount() const { return (_members.size()); }
 
 void Channel::broadcast(const std::string &msg, Client *exclude)
 {
-	for (std::map<std::string, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
+	for (std::map<int, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
 		if (it->second != exclude)
 			it->second->sendMessage(msg);
 }
