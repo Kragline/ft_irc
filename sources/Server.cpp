@@ -232,14 +232,14 @@ void	Server::_capLSHandler(Client &client, const std::string &line)
 
 void	Server::_passHandler(Client &client, const std::string &line)
 {
-	if (client.isRegistered()) { Error::_alreadyRegistered(client); return ; }
+	if (client.isRegistered()) { ALREADY_REGISTERED(client); return ; }
 
-	if (line.length() <= 5)	{ Error::_needMoreParams(client, "PASS"); return ; }
+	if (line.length() <= 5)	{ NEED_MORE_PARAMS(client, "PASS"); return ; }
 
     std::string temp = line.substr(5);
     std::string parameter = temp.substr(0, temp.find("\r\n"));
 
-	if (parameter.empty() || parameter != _password) { Error::_passwordMismatch(client); return ; }
+	if (parameter.empty() || parameter != _password) { PASSWORD_MISMATCH(client); return ; }
 
 	client.setPassOk(true);
 	_tryRegister(client);
@@ -247,15 +247,15 @@ void	Server::_passHandler(Client &client, const std::string &line)
 
 void	Server::_nickHandler(Client &client, const std::string &line)
 {
-	if (line.length() <= 5)	{ Error::_needMoreParams(client, "NICK"); return ; }
+	if (line.length() <= 5)	{ NEED_MORE_PARAMS(client, "NICK"); return ; }
 
 	std::string newNick = _getNick(line);
-	if (newNick.empty()) { Error::_noNicknameGiven(client);	return ; }
+	if (newNick.empty()) { NO_NICKNAME_GIVEN(client);	return ; }
 
-	if (!_isValidNick(newNick))	{ Error::_erroneousNickname(client, newNick); return ; }
+	if (!_isValidNick(newNick))	{ ERRONEUS_NICKNAME(client, newNick); return ; }
 
 	// if nickname is used, irc client will automatucally generate and send a new one
-	if (_nickExists(newNick, client.getFd())) { Error::_nicknameInUse(client, newNick); return ; }
+	if (_nickExists(newNick, client.getFd())) { NICKNAME_IN_USE(client, newNick); return ; }
 
 	std::string	oldNick = client.getNick();
 	if (oldNick == newNick)
@@ -279,7 +279,7 @@ void	Server::_nickHandler(Client &client, const std::string &line)
 
 void	Server::_userHandler(Client &client, const std::string &line)
 {
-	if (client.isRegistered()) { Error::_alreadyRegistered(client); return ; }
+	if (client.isRegistered()) { ALREADY_REGISTERED(client); return ; }
 
 	std::stringstream	ss(line);
 	std::string			cmd, user, host, server, real;
@@ -287,7 +287,7 @@ void	Server::_userHandler(Client &client, const std::string &line)
 	ss >> cmd >> user >> host >> server >> real;
 
 	if (user.empty() || host.empty() ||
-		server.empty() || real.empty())	{ Error::_needMoreParams(client, "USER"); return ; }
+		server.empty() || real.empty())	{ NEED_MORE_PARAMS(client, "USER"); return ; }
 
     client.setUser(user);
     client.setHostname(host);
@@ -379,22 +379,22 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 
 void	Server::_modeHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
+	if (!client.isRegistered()) { NOT_REGISTERED(client); return ; }
 
 	std::stringstream	ss(line);
 	std::string			cmd, target, modes, param;
 
 	ss >> cmd >> target >> modes;
-	if (target.empty()) { Error::_needMoreParams(client, "MODE"); return ; }
+	if (target.empty()) { NEED_MORE_PARAMS(client, "MODE"); return ; }
 
-	if (target[0] != '#') { Reply::_uModeIs(client, modes); return ; }
+	if (target[0] != '#') { U_MODE_IS(client, modes); return ; }
 
 	Channel	*channel = _findChannel(target);
-	if (!channel) { Error::_noSuchChannel(client, target); return ; }
+	if (!channel) { NO_SUCH_CHANNEL(client, target); return ; }
 
-	if (modes.empty()) { Reply::_channelModeIs(client, target, channel->getModeString()); return ; }
+	if (modes.empty()) { CHANNEL_MODE_IS(client, target, channel->getModeString()); return ; }
 
-	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, target); return ; }
+	if (!channel->isOperator(&client)) { CHAN_OP_PRIVS_NEEDED(client, target); return ; }
 
 	_applyChannelModes(client, channel, modes, ss);
 }
@@ -410,7 +410,7 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 	if (line == "JOIN :")
 		return ;
 	
-	if (line.length() <= 5) { Error::_needMoreParams(client, "JOIN"); return ; }
+	if (line.length() <= 5) { NEED_MORE_PARAMS(client, "JOIN"); return ; }
 
 	std::stringstream	ss(line);
     std::string			command, channelName, key;
@@ -422,9 +422,9 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 		if (channel->isMember(&client))
 			return ;
 			
-		if (channel->hasKey() && key != channel->getKey() ){ Error::_badChanKey(client, channelName); return ; }
+		if (channel->hasKey() && key != channel->getKey() ){ BAD_CHAN_KEY(client, channelName); return ; }
 
-		if (channel->isInviteOnly()	&& !channel->isInvited(&client)) { Error::_inviteOnlyChan(client, channelName); return ; }
+		if (channel->isInviteOnly()	&& !channel->isInvited(&client)) { INVITE_ONLY_CHAN(client, channelName); return ; }
 
 		channel->addMember(&client);
 		channel->removeInvited(&client);
@@ -446,17 +446,17 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 
 void	Server::_privmsgHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
+	if (!client.isRegistered()) { NOT_REGISTERED(client); return ; }
 
 	std::stringstream	ss(line);
 	std::string			command, target, message;
 
 	ss >> command >> target;
 
-	if (target.empty()) { Error::_needMoreParams(client, "PRIVMSG"); return ; }
+	if (target.empty()) { NEED_MORE_PARAMS(client, "PRIVMSG"); return ; }
 
 	size_t	msgPos = line.find(" :");
-	if (msgPos == std::string::npos) { Error::_needMoreParams(client, "PRIVMSG"); return ; }
+	if (msgPos == std::string::npos) { NEED_MORE_PARAMS(client, "PRIVMSG"); return ; }
 
 	message = line.substr(msgPos + 2);
 	if (message.empty())
@@ -469,9 +469,9 @@ void	Server::_privmsgHandler(Client &client, const std::string &line)
 	{
 		Channel	*channel = _findChannel(target);
 
-		if (!channel) { Error::_noSuchChannel(client, target); return ; }
+		if (!channel) { NO_SUCH_CHANNEL(client, target); return ; }
 
-		if (!channel->isMember(&client)) { Error::_notOnChannel(client, target); return ; }
+		if (!channel->isMember(&client)) { NOT_ON_CHANNEL(client, target); return ; }
 
 		channel->broadcast(fullMsg, &client);
 	}
@@ -522,7 +522,7 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 	std::string			cmd, channelName, targetNick, reason;
 
 	ss >> cmd >> channelName >> targetNick;
-	if (channelName.empty() || targetNick.empty()) { Error::_needMoreParams(client, "KICK"); return ; }
+	if (channelName.empty() || targetNick.empty()) { NEED_MORE_PARAMS(client, "KICK"); return ; }
 	
 	size_t	pos = line.find(" :");
 	reason = targetNick;
@@ -530,11 +530,11 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 		reason = line.substr(pos + 2);
 
 	Channel	*channel = _findChannel(channelName);
-	if (!channel) { Error::_noSuchChannel(client, channelName); return ; }
+	if (!channel) { NO_SUCH_CHANNEL(client, channelName); return ; }
 
-	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return ; }
+	if (!channel->isMember(&client)) { NOT_ON_CHANNEL(client, channelName); return ; }
 
-	if (!channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return ; }
+	if (!channel->isOperator(&client)) { CHAN_OP_PRIVS_NEEDED(client, channelName); return ; }
 
 	Client	*targetClient = _findClient(targetNick);
 	if (!targetClient || !channel->isMember(targetClient))
@@ -560,25 +560,25 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 
 void	Server::_inviteHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered()) { Error::_notRegistered(client); return ; }
+	if (!client.isRegistered()) { NOT_REGISTERED(client); return ; }
 
 	std::stringstream	ss(line);
 	std::string			cmd, targetNick, channelName;
 
 	ss >> cmd >> targetNick >> channelName;
-	if (targetNick.empty() || channelName.empty()) { Error::_needMoreParams(client, "INVITE"); return ; }
+	if (targetNick.empty() || channelName.empty()) { NEED_MORE_PARAMS(client, "INVITE"); return ; }
 
 	Channel	*channel = _findChannel(channelName);
-	if (!channel) { Error::_noSuchChannel(client, channelName); return ; }
+	if (!channel) { NO_SUCH_CHANNEL(client, channelName); return ; }
 
-	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return ; }
+	if (!channel->isMember(&client)) { NOT_ON_CHANNEL(client, channelName); return ; }
 
-	if (channel->isInviteOnly() && !channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return ; }
+	if (channel->isInviteOnly() && !channel->isOperator(&client)) { CHAN_OP_PRIVS_NEEDED(client, channelName); return ; }
 
 	Client	*targetClient = _findClient(targetNick);
-	if (!targetClient) { Error::_noSuchNick(client, channelName); return ; }
+	if (!targetClient) { NO_SUCH_NICK(client, channelName); return ; }
 
-	if (channel->isMember(targetClient)) { Error::_userOnChannel(client, targetNick, channelName); return ; }
+	if (channel->isMember(targetClient)) { USER_ON_CHANNEL(client, targetNick, channelName); return ; }
 
 	channel->addInvited(targetClient);
 
@@ -588,35 +588,35 @@ void	Server::_inviteHandler(Client &client, const std::string &line)
 		" INVITE " + targetNick + " :" + channelName + "\r\n";
 
 	targetClient->sendMessage(inviteMsg);
-	Reply::_inviting(client, targetNick, channelName);
+	INVITING(client, targetNick, channelName);
 }
 
 void	Server::_topicHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered()) { Error::_notRegistered(client); return; }
+	if (!client.isRegistered()) { NOT_REGISTERED(client); return; }
 
 	std::stringstream	ss(line);
 	std::string			cmd, channelName;
 
 	ss >> cmd >> channelName;
-	if (channelName.empty()) { Error::_needMoreParams(client, "TOPIC"); return; }
+	if (channelName.empty()) { NEED_MORE_PARAMS(client, "TOPIC"); return; }
 
 	Channel	*channel = _findChannel(channelName);
-	if (!channel) { Error::_noSuchChannel(client, channelName); return; }
+	if (!channel) { NO_SUCH_CHANNEL(client, channelName); return; }
 
-	if (!channel->isMember(&client)) { Error::_notOnChannel(client, channelName); return; }
+	if (!channel->isMember(&client)) { NOT_ON_CHANNEL(client, channelName); return; }
 
 	size_t	pos = line.find(" :");
 	if (pos == std::string::npos)
 	{
 		if (channel->getTopic().empty())
-			Reply::_noTopic(client, channel);
+			NO_TOPIC(client, channel);
 		else
-			Reply::_topic(client, channel);
+			TOPIC(client, channel);
 		return ;
 	}
 
-	if (channel->isTopicRestricted() && !channel->isOperator(&client)) { Error::_chanOpPrivsNeeded(client, channelName); return; }
+	if (channel->isTopicRestricted() && !channel->isOperator(&client)) { CHAN_OP_PRIVS_NEEDED(client, channelName); return; }
 
 	std::string	newTopic = line.substr(pos + 2);
 	channel->setTopic(newTopic);
