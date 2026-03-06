@@ -6,7 +6,7 @@
 #include "Error.hpp"
 #include "Reply.hpp"
 
-#include "IrcCommon.hpp" // only if Server.cpp uses CAP_LS / JOIN_451 / JOIN_461 / color macros
+#include "IrcCommon.hpp"
 
 Server::Server() : _fd(-1), _epoll_fd(-1), _port(5555), _password("bismillah")
 {
@@ -160,6 +160,7 @@ void	Server::_welcome(Client &client)
 	client.sendMessage(msg002);
 	client.sendMessage(msg003);
 	client.sendMessage(msg004);
+	client.sendMessage(CHAD);
 }
 
 void	Server::_tryRegister(Client &client)
@@ -219,7 +220,7 @@ bool	Server::_isValidNick(const std::string &nick)
 void	Server::_capLSHandler(Client &client, const std::string &line)
 {
 	(void)line;
-	client.sendMessage(CAP_LS);
+	client.sendMessage("CAP * LS :\r\n");
 }
 
 void	Server::_passHandler(Client &client, const std::string &line)
@@ -359,7 +360,7 @@ void Server::_applyChannelModes(Client &client, Channel *channel, const std::str
 					channel->removeOperator(it);
 			}
 
-			modeChanges += 'o';
+			modeChanges += "o " + nick + " ";
 		}
 	}
 
