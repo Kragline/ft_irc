@@ -84,7 +84,6 @@ private:
 	Channel	*_createChannel(const std::string &name, Client *creator);
 
 	// helpers
-	std::string	_getNick(const std::string &token);
 	void		_applyChannelModes(Client &client, Channel *channel, const std::string &modes, std::stringstream &ss);
 
 	bool	_nickExists(const std::string &nick, int excludeFd);

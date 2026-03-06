@@ -174,17 +174,6 @@ void	Server::_tryRegister(Client &client)
 	}
 }
 
-std::string	Server::_getNick(const std::string &token)
-{
-    size_t	start = 5;
-	size_t	end = token.find("\r");
-
-	if (end == std::string::npos)
-		end = token.length();
-
-	return (token.substr(start, end - start));
-}
-
 bool	Server::_nickExists(const std::string &nick, int excludeFd)
 {
 	std::map<std::string, Client *>::iterator	it = _clientsByNicks.find(nick); 
@@ -197,7 +186,7 @@ bool	Server::_nickExists(const std::string &nick, int excludeFd)
 
 void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick)
 {
-	std::string	msg = ":" + oldNick + "!" + client.getUser() + "@" +
+	std::string	msg = ":" + oldNick + "!~" + client.getUser() + "@" +
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
 	client.sendMessage(msg);
@@ -250,9 +239,10 @@ void	Server::_passHandler(Client &client, const std::string &line)
 
 void	Server::_nickHandler(Client &client, const std::string &line)
 {
-	if (line.length() <= 5)	{ NEED_MORE_PARAMS(client, "NICK"); return ; }
+	std::stringstream	ss(line);
+	std::string			cmd, newNick;
 
-	std::string newNick = _getNick(line);
+	ss >> cmd >> newNick;
 	if (newNick.empty()) { NO_NICKNAME_GIVEN(client);	return ; }
 
 	if (!_isValidNick(newNick))	{ ERRONEUS_NICKNAME(client, newNick); return ; }
@@ -444,7 +434,11 @@ void	Server::_joinHandler(Client &client, const std::string &line)
 		client.getUser() + "@" + client.getHostname() +
 		" JOIN :" + channelName + "\r\n";
 
-    channel->broadcast(joinMsg);
+	channel->broadcast(joinMsg);
+
+	if (!channel->getTopic().empty()) TOPIC(client, channel);
+	NAMREPLY(client, channel);
+	ENDOFNAMES(client, channelName);
 }
 
 void	Server::_privmsgHandler(Client &client, const std::string &line)

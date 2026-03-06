@@ -2,7 +2,7 @@
 #include "Client.hpp"
 
 Channel::Channel(const std::string &name, Client *op) : _name(name),
-	_inviteOnly(false), _topicRestricted(false),
+	_founder(op), _inviteOnly(false), _topicRestricted(false),
 	_hasKey(false), _hasLimit(false), _limit(std::numeric_limits<size_t>::max())
 {
 	addMember(op);
@@ -41,8 +41,8 @@ Channel	&Channel::operator=(const Channel &other)
 Channel::~Channel()
 {
 	for (std::map<int, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
-		it->second->removeChannel(this);
-
+		if (it->second)
+			it->second->removeChannel(this);
 }
 
 std::map<int, Client *>	&Channel::getOperators() { return (_operators); }
@@ -51,6 +51,8 @@ std::map<int, Client *>	&Channel::getInvited() { return (_invited); }
 
 std::string	Channel::getName() const { return (_name); }
 void	Channel::setName(const std::string &name) { _name = name; }
+
+Client	*Channel::getFounder() const { return (_founder); }
 
 bool	Channel::isInviteOnly() const { return (_inviteOnly == true); }
 void	Channel::setInviteOnly(bool status) { _inviteOnly = status; }
@@ -106,7 +108,7 @@ void	Channel::removeMember(Client *client)
 	removeInvited(client);
 }
 
-bool	Channel::isMember(Client *client)
+bool	Channel::isMember(Client *client) const 
 {
 	return (_members.find(client->getFd()) != _members.end());
 }
@@ -122,7 +124,7 @@ void	Channel::addInvited(Client *client)
 		_invited.insert(std::make_pair(client->getFd(), client));
 }
 
-bool	Channel::isInvited(Client *client)
+bool	Channel::isInvited(Client *client) const 
 {
 	return (_invited.find(client->getFd()) != _invited.end());
 }
@@ -140,7 +142,7 @@ void	Channel::addOperator(Client *client)
 		_operators.insert(std::make_pair(client->getFd(), client));
 }
 
-bool	Channel::isOperator(Client *client)
+bool	Channel::isOperator(Client *client) const 
 {
 	return (_operators.find(client->getFd()) != _operators.end());
 }

@@ -16,6 +16,8 @@ private:
 	std::string	_key;
 	std::string	_topic;
 
+	Client	*_founder;
+
 	std::map<int, Client *>	_operators;
 	std::map<int, Client *>	_members;
 	std::map<int, Client *>	_invited;
@@ -42,6 +44,8 @@ public:
 	std::string	getName() const ;
 	void		setName(const std::string &name);
 
+	Client	*getFounder() const ;
+
 	bool		isInviteOnly() const;
 	void		setInviteOnly(bool status);
 
@@ -65,15 +69,15 @@ public:
 	void	setNewOperator();
 	void	removeMember(Client *client);
 
-	bool	isMember(Client *client);
+	bool	isMember(Client *client) const ;
 	bool	isEmpty() const ;
 
 	void	addInvited(Client *client);
-	bool	isInvited(Client *client);
+	bool	isInvited(Client *client) const ;
 	void	removeInvited(Client *client);
 
 	void	addOperator(Client *client);
-	bool	isOperator(Client *client);
+	bool	isOperator(Client *client) const ;
 	void	removeOperator(Client *client);
 
 	size_t	operatorCount() const ;
