@@ -11,7 +11,7 @@ Client::Client(const Client &other) :
 	_registered(other._registered), 
 	_nick(other._nick), _user(other._user),
 	_hostname(other._hostname), _servername(other._servername),
-	_realName(other._realName), _buffer(other._buffer) {}
+	_realName(other._realName), _buffer(other._buffer), _channels(other._channels) {}
 
 Client	&Client::operator=(const Client &other)
 {
@@ -29,6 +29,7 @@ Client	&Client::operator=(const Client &other)
     _servername = other._servername;
 	_realName = other._realName;
     _buffer = other._buffer;
+	_channels = other._channels;
 
 	return (*this);
 }
@@ -73,3 +74,19 @@ void				Client::setServername(const std::string &newServername) { _servername = 
 const std::string   &Client::getBuffer() const { return (_buffer); }
 void                Client::addToBuffer(const std::string &newBuffer) { _buffer.append(newBuffer); }
 void                Client::cleanBuffer(void) { _buffer.clear(); }
+
+void	Client::addChannel(Channel *channel)
+{
+	if (_channels.find(channel->getName()) == _channels.end())
+		_channels.insert(std::make_pair(channel->getName(), channel));
+}
+
+void	Client::removeChannel(Channel *channel)
+{
+	std::map<std::string, Channel *>::iterator	it = _channels.find(channel->getName());
+
+	if (it != _channels.end())
+		_channels.erase(it);
+}
+
+std::map<std::string, Channel *>	&Client::getChannels() { return (_channels); }

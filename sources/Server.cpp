@@ -200,8 +200,11 @@ void	Server::_broadcastNickChange(Client &client, const std::string &oldNick, co
 	std::string	msg = ":" + oldNick + "!" + client.getUser() + "@" +
 						client.getHostname() + " NICK :" + newNick + "\r\n";
 
-	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-		it->second.sendMessage(msg);
+	client.sendMessage(msg);
+	std::map<std::string, Channel *>	&clientChannels = client.getChannels();
+	
+	for (std::map<std::string, Channel *>::iterator it = clientChannels.begin(); it != clientChannels.end(); ++it)
+		it->second->broadcast(msg, &client);
 }
 
 bool	Server::_isValidNick(const std::string &nick)

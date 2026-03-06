@@ -7,8 +7,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <csignal>
+#include <map>
 
 #include "IrcCommon.hpp"
+#include "Channel.hpp"
 
 class Client
 {
@@ -26,6 +28,8 @@ class Client
 	std::string _realName;
 
     std::string _buffer;
+
+	std::map<std::string, Channel *>	_channels;
 public:
 	Client();
 	Client(int fd);
@@ -68,4 +72,8 @@ public:
     const std::string   &getBuffer() const;
     void                addToBuffer(const std::string &buffer);
     void                cleanBuffer(void);
+
+	void								addChannel(Channel *channel);
+	void								removeChannel(Channel *channel);
+	std::map<std::string, Channel *>	&getChannels();
 };

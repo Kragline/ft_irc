@@ -38,7 +38,12 @@ Channel	&Channel::operator=(const Channel &other)
 	return (*this);
 }
 
-Channel::~Channel() {}
+Channel::~Channel()
+{
+	for (std::map<int, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
+		it->second->removeChannel(this);
+
+}
 
 std::map<int, Client *>	&Channel::getOperators() { return (_operators); }
 std::map<int, Client *>	&Channel::getMembers() { return (_members); }
@@ -68,8 +73,10 @@ size_t	Channel::getLimit() const { return (_limit); }
 
 void	Channel::addMember(Client *client)
 {
-	if (!isMember(client))
-		_members.insert(std::make_pair(client->getFd(), client));
+	if (isMember(client))
+		return ;
+	_members.insert(std::make_pair(client->getFd(), client));
+	client->addChannel(this);
 }
 
 void	Channel::setNewOperator()
@@ -89,6 +96,8 @@ void	Channel::removeMember(Client *client)
 	std::map<int, Client *>::iterator	it = _members.find(client->getFd());
 	if (it != _members.end())
 		_members.erase(it);
+	
+	client->removeChannel(this);
 
 	it = _operators.find(client->getFd());
 	if (it != _operators.end())
