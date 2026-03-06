@@ -5,26 +5,27 @@
 #include <algorithm>
 #include <limits>
 #include <cstddef>
+#include <map>
 
 class Client;
 
 class Channel
 {
 private:
-	std::string				_name;
-	std::string				_key;
-	std::string				_topic;
+	std::string	_name;
+	std::string	_key;
+	std::string	_topic;
 
-	std::vector<Client *>	_operators;
-	std::vector<Client *>	_members;
-	std::vector<Client *>	_invited;
+	std::map<std::string, Client *>	_operators;
+	std::map<std::string, Client *>	_members;
+	std::map<std::string, Client *>	_invited;
 
-	bool					_inviteOnly;
-	bool					_topicRestricted;
-	bool					_hasKey;
-	bool					_hasLimit;
+	bool	_inviteOnly;
+	bool	_topicRestricted;
+	bool	_hasKey;
+	bool	_hasLimit;
 
-	size_t					_limit;
+	size_t	_limit;
 
 public:
 	Channel(const std::string &name, Client *op);
@@ -34,9 +35,9 @@ public:
 
 	~Channel();
 
-	std::vector<Client *>	&getOperators();
-	std::vector<Client *>	&getMembers();
-	std::vector<Client *>	&getInvited();
+	std::map<std::string, Client *>	&getOperators();
+	std::map<std::string, Client *>	&getMembers();
+	std::map<std::string, Client *>	&getInvited();
 
 	std::string	getName() const ;
 	void		setName(const std::string &name);
@@ -61,7 +62,7 @@ public:
 	size_t	getLimit() const ;
 
 	void	addMember(Client *client);
-	void	addRandomOperator();
+	void	setNewOperator();
 	void	removeMember(Client *client);
 
 	bool	isMember(Client *client);
@@ -81,7 +82,4 @@ public:
 	void	broadcast(const std::string &message, Client *exclude = NULL);
 
 	std::string	getModeString() const ;
-
-private:
-    std::vector<Client *>::iterator	_findMember(std::vector<Client *> &vec, Client *client);
 };

@@ -555,7 +555,7 @@ void	Server::_kickHandler(Client &client, const std::string &line)
 	}
 	
 	if (!channel->operatorCount())
-		channel->addRandomOperator();
+		channel->setNewOperator();
 }
 
 void	Server::_inviteHandler(Client &client, const std::string &line)
@@ -786,7 +786,7 @@ void	Server::serverLoop()
 						close(cfd);
 						throw std::runtime_error("epoll_ctl");
 					}
-					_clients[cfd] = Client(cfd);
+					_clients.insert(std::make_pair(cfd, Client(cfd)));
 				}
 			}
 			else        // Existing Client

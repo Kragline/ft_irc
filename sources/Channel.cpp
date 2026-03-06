@@ -5,8 +5,8 @@ Channel::Channel(const std::string &name, Client *op) : _name(name),
 	_inviteOnly(false), _topicRestricted(false),
 	_hasKey(false), _hasLimit(false), _limit(std::numeric_limits<size_t>::max())
 {
-	_members.push_back(op);
-	_operators.push_back(op);
+	addMember(op);
+	addOperator(op);
 }
 
 Channel::Channel(const Channel &other) : _name(other._name), _key(other._key), _topic(other._topic),
@@ -40,9 +40,9 @@ Channel	&Channel::operator=(const Channel &other)
 
 Channel::~Channel() {}
 
-std::vector<Client *>	&Channel::getOperators() { return (_operators); }
-std::vector<Client *>	&Channel::getMembers() { return (_members); }
-std::vector<Client *>	&Channel::getInvited() { return (_invited); }
+std::map<std::string, Client *>	&Channel::getOperators() { return (_operators); }
+std::map<std::string, Client *>	&Channel::getMembers() { return (_members); }
+std::map<std::string, Client *>	&Channel::getInvited() { return (_invited); }
 
 std::string	Channel::getName() const { return (_name); }
 void	Channel::setName(const std::string &name) { _name = name; }
@@ -66,24 +66,19 @@ void	Channel::removeLimit() { _limit = std::numeric_limits<size_t>::max(); _hasL
 bool	Channel::hasLimit() const { return (_hasLimit == true); }
 size_t	Channel::getLimit() const { return (_limit); }
 
-std::vector<Client *>::iterator	Channel::_findMember(std::vector<Client *> &vec, Client * client)
-{
-	return (std::find(vec.begin(), vec.end(), client));
-}
-
 void	Channel::addMember(Client *client)
 {
 	if (!isMember(client))
-		_members.push_back(client);
+		_members.insert(std::make_pair(client->getNick(), client));
 }
 
-void	Channel::addRandomOperator()
+void	Channel::setNewOperator()
 {
-	for (size_t i = 0; i < _members.size(); i++)
+	for (std::map<std::string, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
 	{
-		if (!isOperator(_members[i]))
+		if (!isOperator(it->second))
 		{
-			_operators.push_back(_members[i]);
+			_operators.insert(std::make_pair(it->second->getNick(), it->second));
 			return ;
 		}
 	}
@@ -91,11 +86,11 @@ void	Channel::addRandomOperator()
 
 void	Channel::removeMember(Client *client)
 {
-	std::vector<Client *>::iterator it = _findMember(_members, client);
+	std::map<std::string, Client *>::iterator	it = _members.find(client->getNick());
 	if (it != _members.end())
 		_members.erase(it);
 
-	it = _findMember(_operators, client);
+	it = _operators.find(client->getNick());
 	if (it != _operators.end())
 		_operators.erase(it);
 
@@ -104,7 +99,7 @@ void	Channel::removeMember(Client *client)
 
 bool	Channel::isMember(Client *client)
 {
-	return (_findMember(_members, client) != _members.end());
+	return (_members.find(client->getNick()) != _members.end());
 }
 
 bool	Channel::isEmpty() const
@@ -115,17 +110,17 @@ bool	Channel::isEmpty() const
 void	Channel::addInvited(Client *client)
 {
 	if (!isInvited(client))
-		_invited.push_back(client);
+		_invited.insert(std::make_pair(client->getNick(), client));
 }
 
 bool	Channel::isInvited(Client *client)
 {
-	return (_findMember(_invited, client) != _invited.end());
+	return (_invited.find(client->getNick()) != _invited.end());
 }
 
 void	Channel::removeInvited(Client *client)
 {
-	std::vector<Client *>::iterator it = _findMember(_invited, client);
+	std::map<std::string, Client *>::iterator	it = _invited.find(client->getNick());
 	if (it != _invited.end())
 		_invited.erase(it);
 }
@@ -133,17 +128,17 @@ void	Channel::removeInvited(Client *client)
 void	Channel::addOperator(Client *client)
 {
 	if (!isOperator(client))
-		_operators.push_back(client);
+		_operators.insert(std::make_pair(client->getNick(), client));
 }
 
 bool	Channel::isOperator(Client *client)
 {
-	return (_findMember(_operators, client) != _operators.end());
+	return (_operators.find(client->getNick()) != _operators.end());
 }
 
 void	Channel::removeOperator(Client *client)
 {
-	std::vector<Client *>::iterator it = _findMember(_operators, client);
+	std::map<std::string, Client *>::iterator	it = _operators.find(client->getNick());
 	if (it != _operators.end())
 		_operators.erase(it);
 }
@@ -154,9 +149,9 @@ size_t	Channel::memberCount() const { return (_members.size()); }
 
 void Channel::broadcast(const std::string &msg, Client *exclude)
 {
-	for (size_t i = 0; i < _members.size(); i++)
-		if (_members[i] != exclude)
-			_members[i]->sendMessage(msg);
+	for (std::map<std::string, Client *>::iterator it = _members.begin(); it != _members.end(); ++it)
+		if (it->second != exclude)
+			it->second->sendMessage(msg);
 }
 
 std::string	Channel::getModeString() const
