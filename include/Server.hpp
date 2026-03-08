@@ -9,6 +9,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <errno.h>
 #include <sys/epoll.h>
 
@@ -22,6 +23,8 @@
 class Client;
 class Channel;
 
+static bool _running = false;
+
 class Server
 {
 private:
@@ -29,6 +32,7 @@ private:
 	int							_epoll_fd;
 	int							_port;
 	std::string					_password;
+
 
 	struct sockaddr_in			_clientInfo;
 
@@ -89,4 +93,7 @@ private:
 	bool	_nickExists(const std::string &nick, int excludeFd);
 	bool	_isValidNick(const std::string &nick);
 	void	_broadcastNickChange(Client &client, const std::string &oldNick, const std::string &newNick);
+
+    // signal handler
+    static void    _sigintHandler(int sig);
 };

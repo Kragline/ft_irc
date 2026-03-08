@@ -47,6 +47,13 @@ Server::~Server()
 	_clientsByNicks.clear();
 }
 
+void    Server::_sigintHandler(int sig)
+{
+    std::cout << "\b\bServer is shutting down" << std::endl;
+    _running = false;
+    (void)sig;
+}
+
 void	Server::_initServer()
 {
 	int	opt = 1;
@@ -746,11 +753,15 @@ void	Server::serverLoop()
 	struct epoll_event	events[MAX_EVENTS];
 	socklen_t			clientSize = 0;
 
-	while (true)
+    _running = true;
+    signal(SIGINT, _sigintHandler);
+	while (_running)
 	{
 		n_events = epoll_wait(_epoll_fd, events, MAX_EVENTS, -1);
 		if (n_events == -1)
 		{
+            if (errno == EINTR)
+                continue ;
 			close(_fd);
 			close(_epoll_fd);
 			throw std::runtime_error("epoll_wait");
