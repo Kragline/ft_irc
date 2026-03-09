@@ -23,8 +23,6 @@
 class Client;
 class Channel;
 
-static bool _running = false;
-
 class Server
 {
 private:

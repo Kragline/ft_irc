@@ -8,6 +8,8 @@
 
 #include "IrcCommon.hpp"
 
+static bool _running = false;
+
 Server::Server() : _fd(-1), _epoll_fd(-1), _port(5555), _password("bismillah")
 {
 	std::memset(&_clientInfo, 0, sizeof(_clientInfo));
