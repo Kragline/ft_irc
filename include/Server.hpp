@@ -18,7 +18,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#define MAX_EVENTS 10
+#define MAX_EVENTS 1024
 
 class Client;
 class Channel;
