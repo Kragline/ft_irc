@@ -42,11 +42,16 @@ Server	&Server::operator=(const Server &other)
 
 Server::~Server()
 {
-	if (_fd != -1)
-		close(_fd);
+
+	_channels.clear();
 
 	_clients.clear();
 	_clientsByNicks.clear();
+
+	if (_fd != -1)
+		close(_fd);
+	if (_epoll_fd != -1)
+        close(_epoll_fd);
 }
 
 void    Server::_sigintHandler(int sig)
@@ -500,6 +505,8 @@ void	Server::_quitHandler(Client &client, const std::string &line)
 		{
 			channel->broadcast(quitMsg, &client);
 			channel->removeMember(&client);
+			channel->removeOperator(&client);
+			channel->removeInvited(&client);
 			
 			if (channel->isEmpty())
 			{
@@ -510,12 +517,14 @@ void	Server::_quitHandler(Client &client, const std::string &line)
 		++it;
 	}
 
-	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client.getFd(), NULL);
-	close(client.getFd());
 
-	_clients.erase(client.getFd());
 	if (!client.getNick().empty())
 		_clientsByNicks.erase(client.getNick());
+
+	epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client.getFd(), NULL);
+	close(client.getFd());
+	
+	_clients.erase(client.getFd());
 }
 
 void	Server::_kickHandler(Client &client, const std::string &line)
@@ -655,31 +664,31 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	while ((count = recv(cfd, buffer, 512, 0)) > 0)
 	{
 		request += buffer;
-        std::cout << "Buffer: ";
-        for (int i = 0; buffer[i]; i++)
-        {
-            if (buffer[i] == '\r')
-                std::cout << "\\r";
-            else if (buffer[i] == '\n')
-                std::cout << "\\n";
-            else
-                std::cout << buffer[i];
-        }
-        std::cout << std::endl;
+        // std::cout << "Buffer: ";
+        // for (int i = 0; buffer[i]; i++)
+        // {
+        //     if (buffer[i] == '\r')
+        //         std::cout << "\\r";
+        //     else if (buffer[i] == '\n')
+        //         std::cout << "\\n";
+        //     else
+        //         std::cout << buffer[i];
+        // }
+        // std::cout << std::endl;
 		std::memset(buffer, 0x0, 512);
 	}
 
-    std::cout << "Full request: ";
-    for (int i = 0; request[i]; i++)
-    {
-        if (request[i] == '\r')
-            std::cout << "\\r";
-        else if (request[i] == '\n')
-            std::cout << "\\n";
-         else
-            std::cout << request[i];
-    }
-    std::cout << std::endl;
+    // std::cout << "Full request: ";
+    // for (int i = 0; request[i]; i++)
+    // {
+    //     if (request[i] == '\r')
+    //         std::cout << "\\r";
+    //     else if (request[i] == '\n')
+    //         std::cout << "\\n";
+    //      else
+    //         std::cout << request[i];
+    // }
+    // std::cout << std::endl;
     if (request.find("\r\n") == std::string::npos)
     {
         client->addToBuffer(request);
@@ -695,8 +704,10 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
-		std::cout << "Token: " << tokens[i] << std::endl;
+		// std::cout << "Token: " << tokens[i] << std::endl;
 		_dispatchCommand(*client, tokens[i]);
+		if (_clients.find(cfd) == _clients.end())
+            return;
 	}
 
 	if (count == 0)

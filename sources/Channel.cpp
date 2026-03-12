@@ -9,11 +9,12 @@ Channel::Channel(const std::string &name, Client *op) : _name(name),
 	addOperator(op);
 }
 
-Channel::Channel(const Channel &other) : _name(other._name), _key(other._key), _topic(other._topic),
+Channel::Channel(const Channel &other) : _name(other._name), _key(other._key),
+	_topic(other._topic), _founder(other._founder),
 	_operators(other._operators), _members(other._members),
 	_invited(other._invited), _inviteOnly(other._inviteOnly),
 	_topicRestricted(other._topicRestricted), _hasKey(other._hasKey),
-	_hasLimit(other._hasLimit) {}
+	_hasLimit(other._hasLimit), _limit(other._limit) {}
 
 Channel	&Channel::operator=(const Channel &other)
 {
@@ -23,6 +24,8 @@ Channel	&Channel::operator=(const Channel &other)
 	_operators = other._operators;
 	_members = other._members;
 	_invited = other._invited;
+
+	_founder = other._founder;
 	
 	_name = other._name;
 	_key = other._key;

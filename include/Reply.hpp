@@ -36,9 +36,9 @@ inline void	NAMREPLY(const Client &client, Channel *channel)
 	std::map<int, Client*>	&members = channel->getMembers();
 
 	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-		if (it->second == channel->getFounder())
+		if (it->second && it->second == channel->getFounder())
 			names += "~";
-		else if (channel->isOperator(it->second))
+		else if (it->second && channel->isOperator(it->second))
 			names += "@";
 		
 		names += it->second->getNick() + " ";
