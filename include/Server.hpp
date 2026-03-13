@@ -20,6 +20,8 @@
 
 #define MAX_EVENTS 1024
 
+#define DEBUG false
+
 class Client;
 class Channel;
 

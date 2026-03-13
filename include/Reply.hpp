@@ -35,8 +35,9 @@ inline void NAMREPLY(const Client &client, Channel *channel)
 	std::string				names = ":ircserv 353 " + client.getNick() + " = " + channel->getName() + " :";
 	std::map<int, Client*>	&members = channel->getMembers();
 
-	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-		if (!it->second) continue;
+	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it)
+	{
+		if (!it->second) continue ;
 
 		// Use @ for both founder and operators for better client compatibility
 		if (it->second == channel->getFounder() || channel->isOperator(it->second))

@@ -604,18 +604,18 @@ void	Server::_inviteHandler(Client &client, const std::string &line)
 
 void	Server::_topicHandler(Client &client, const std::string &line)
 {
-	if (!client.isRegistered()) { NOT_REGISTERED(client); return; }
+	if (!client.isRegistered()) { NOT_REGISTERED(client); return ; }
 
 	std::stringstream	ss(line);
 	std::string			cmd, channelName;
 
 	ss >> cmd >> channelName;
-	if (channelName.empty()) { NEED_MORE_PARAMS(client, "TOPIC"); return; }
+	if (channelName.empty()) { NEED_MORE_PARAMS(client, "TOPIC"); return ; }
 
 	Channel	*channel = _findChannel(channelName);
-	if (!channel) { NO_SUCH_CHANNEL(client, channelName); return; }
+	if (!channel) { NO_SUCH_CHANNEL(client, channelName); return ; }
 
-	if (!channel->isMember(&client)) { NOT_ON_CHANNEL(client, channelName); return; }
+	if (!channel->isMember(&client)) { NOT_ON_CHANNEL(client, channelName); return ; }
 
 	size_t	pos = line.find(" :");
 	if (pos == std::string::npos)
@@ -627,7 +627,7 @@ void	Server::_topicHandler(Client &client, const std::string &line)
 		return ;
 	}
 
-	if (channel->isTopicRestricted() && !channel->isOperator(&client)) { CHAN_OP_PRIVS_NEEDED(client, channelName); return; }
+	if (channel->isTopicRestricted() && !channel->isOperator(&client)) { CHAN_OP_PRIVS_NEEDED(client, channelName); return ; }
 
 	std::string	newTopic = line.substr(pos + 2);
 	channel->setTopic(newTopic);
@@ -664,31 +664,37 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	while ((count = recv(cfd, buffer, 512, 0)) > 0)
 	{
 		request += buffer;
-        // std::cout << "Buffer: ";
-        // for (int i = 0; buffer[i]; i++)
-        // {
-        //     if (buffer[i] == '\r')
-        //         std::cout << "\\r";
-        //     else if (buffer[i] == '\n')
-        //         std::cout << "\\n";
-        //     else
-        //         std::cout << buffer[i];
-        // }
-        // std::cout << std::endl;
+		if (DEBUG)
+		{
+			std::cout << "Buffer: ";
+			for (int i = 0; buffer[i]; i++)
+			{
+				if (buffer[i] == '\r')
+					std::cout << "\\r";
+				else if (buffer[i] == '\n')
+					std::cout << "\\n";
+				else
+					std::cout << buffer[i];
+			}
+			std::cout << std::endl;
+		}
 		std::memset(buffer, 0x0, 512);
 	}
 
-    // std::cout << "Full request: ";
-    // for (int i = 0; request[i]; i++)
-    // {
-    //     if (request[i] == '\r')
-    //         std::cout << "\\r";
-    //     else if (request[i] == '\n')
-    //         std::cout << "\\n";
-    //      else
-    //         std::cout << request[i];
-    // }
-    // std::cout << std::endl;
+	if (DEBUG)
+	{
+		std::cout << "Full request: ";
+		for (int i = 0; request[i]; i++)
+		{
+			if (request[i] == '\r')
+				std::cout << "\\r";
+			else if (request[i] == '\n')
+				std::cout << "\\n";
+			 else
+				std::cout << request[i];
+		}
+		std::cout << std::endl;
+	}
     if (request.find("\r\n") == std::string::npos)
     {
         client->addToBuffer(request);
@@ -704,10 +710,11 @@ void	Server::_handleMessages(int cfd, char *buffer)
 	tokens = parser.getTokens();
 	for (size_t i = 0; i < tokens.size(); i++)
 	{
-		// std::cout << "Token: " << tokens[i] << std::endl;
+		if (DEBUG)
+			std::cout << "Token: " << tokens[i] << std::endl;
 		_dispatchCommand(*client, tokens[i]);
 		if (_clients.find(cfd) == _clients.end())
-            return;
+            return ;
 	}
 
 	if (count == 0)
