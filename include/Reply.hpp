@@ -30,15 +30,16 @@ inline void	U_MODE_IS(const Client &client, const std::string &modes)
 	client.sendMessage(":ircserv 221 " + client.getNick() + " " + modes + "\r\n");
 }
 
-inline void	NAMREPLY(const Client &client, Channel *channel)
+inline void NAMREPLY(const Client &client, Channel *channel)
 {
 	std::string				names = ":ircserv 353 " + client.getNick() + " = " + channel->getName() + " :";
 	std::map<int, Client*>	&members = channel->getMembers();
 
 	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
-		if (it->second && it->second == channel->getFounder())
-			names += "~";
-		else if (it->second && channel->isOperator(it->second))
+		if (!it->second) continue;
+
+		// Use @ for both founder and operators for better client compatibility
+		if (it->second == channel->getFounder() || channel->isOperator(it->second))
 			names += "@";
 		
 		names += it->second->getNick() + " ";
