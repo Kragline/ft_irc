@@ -21,7 +21,7 @@ Below you can find instructions for building and using.
 E.g: `./ircsserv 5555 pass`
 
 ### NOTE
-For ports from 0 to 1024 you need to run the app with SUID bit.
+Ports from 0 to 1024 are forbidden.
 
 # Resources
 https://datatracker.ietf.org/doc/html/rfc1459
